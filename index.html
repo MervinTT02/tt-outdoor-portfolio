@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="TT 的户外徒步摄影网站，展示个人徒步摄影作品与走过的路线。"
+    />
+    <title>TT | 户外徒步摄影集</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+
+    <header class="topbar">
+      <a class="brand" href="#home">
+        <span class="brand-mark">TT</span>
+        <span class="brand-text">Outdoors Journal</span>
+      </a>
+      <nav class="nav">
+        <a href="#routes">徒步路线</a>
+        <a href="#gallery">摄影作品</a>
+        <a href="#about">关于我</a>
+      </nav>
+    </header>
+
+    <main id="home">
+      <section class="hero reveal">
+        <div class="hero-copy">
+          <p class="eyebrow">Personal Hiking & Photography Portfolio</p>
+          <h1>TT 的山野影像档案</h1>
+          <p class="hero-desc">
+            记录风、云、雪线和脚步。这个网站用来长期展示我在中国各地徒步时拍摄的作品，以及走过的路线记忆。
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-solid" href="#gallery">浏览作品</a>
+            <a class="btn btn-ghost" href="#routes">查看路线</a>
+          </div>
+          <div class="stat-row">
+            <div class="stat">
+              <p id="stat-photo-count">0</p>
+              <span>摄影作品</span>
+            </div>
+            <div class="stat">
+              <p id="stat-route-count">0</p>
+              <span>徒步路线</span>
+            </div>
+            <div class="stat">
+              <p id="stat-updated">2026</p>
+              <span>当前版本</span>
+            </div>
+          </div>
+        </div>
+        <div class="hero-media">
+          <img
+            id="hero-cover"
+            src="./个人摄影集/梅里北坡/DSC01238.jpg"
+            alt="TT 户外徒步摄影封面"
+          />
+        </div>
+      </section>
+
+      <section id="routes" class="section reveal">
+        <div class="section-head">
+          <p class="eyebrow">Routes</p>
+          <h2>之前走过的徒步路线</h2>
+          <p>按路线归档作品，可快速切换查看每次行程中的完整照片。</p>
+        </div>
+        <div id="route-grid" class="route-grid"></div>
+      </section>
+
+      <section id="gallery" class="section reveal">
+        <div class="section-head">
+          <p class="eyebrow">Photography</p>
+          <h2>户外徒步摄影作品</h2>
+          <p>已收录该文件夹中的全部照片，支持按路线筛选与全屏预览。</p>
+        </div>
+        <div id="filter-row" class="filter-row"></div>
+        <div id="gallery-grid" class="gallery-grid"></div>
+      </section>
+
+      <section id="about" class="section about reveal">
+        <p class="eyebrow">About TT</p>
+        <h2>山野不止是目的地，也是观看世界的方式</h2>
+        <p>
+          我叫 TT，偏好高海拔徒步与轻量化穿越。这个站点会持续更新我的徒步摄影和路线记录，后续也可以继续加入 GPX
+          轨迹、海拔曲线和行程日志。
+        </p>
+      </section>
+    </main>
+
+    <div id="lightbox" class="lightbox" aria-hidden="true">
+      <button class="lightbox-close" id="lightbox-close" aria-label="关闭预览">
+        ×
+      </button>
+      <button class="lightbox-nav prev" id="lightbox-prev" aria-label="上一张">
+        ‹
+      </button>
+      <img id="lightbox-image" src="" alt="大图预览" />
+      <button class="lightbox-nav next" id="lightbox-next" aria-label="下一张">
+        ›
+      </button>
+      <p id="lightbox-caption"></p>
+    </div>
+
+    <footer class="footer">
+      <p>© <span id="footer-year"></span> TT Outdoors. Crafted for hiking memory.</p>
+    </footer>
+
+    <script src="./script.js" defer></script>
+  </body>
+</html>
