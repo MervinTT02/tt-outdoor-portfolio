@@ -16,36 +16,36 @@
 
     <header class="topbar">
       <a class="brand" href="#home">
-        <span class="brand-mark">TT</span>
-        <span class="brand-text">Outdoors Journal</span>
+        <span id="brand-mark" class="brand-mark">TT</span>
+        <span id="brand-text" class="brand-text">Outdoors Journal</span>
       </a>
       <nav class="nav">
-        <a href="#routes">徒步路线</a>
-        <a href="#gallery">摄影作品</a>
-        <a href="#about">关于我</a>
+        <a id="nav-routes" href="#routes">徒步路线</a>
+        <a id="nav-gallery" href="#gallery">摄影作品</a>
+        <a id="nav-about" href="#about">关于我</a>
       </nav>
     </header>
 
     <main id="home">
       <section class="hero reveal">
         <div class="hero-copy">
-          <p class="eyebrow">Personal Hiking & Photography Portfolio</p>
-          <h1>TT 的摄影档案</h1>
-          <p class="hero-desc">
+          <p id="hero-eyebrow" class="eyebrow">Personal Hiking & Photography Portfolio</p>
+          <h1 id="hero-title">TT 的摄影档案</h1>
+          <p id="hero-desc" class="hero-desc">
             记录风、云、雪线和脚步。这个网站用来长期展示我在中国各地徒步时拍摄的作品，以及走过的路线记忆。
           </p>
           <div class="hero-actions">
-            <a class="btn btn-solid" href="#gallery">浏览作品</a>
-            <a class="btn btn-ghost" href="#routes">查看路线</a>
+            <a id="hero-primary-cta" class="btn btn-solid" href="#gallery">浏览作品</a>
+            <a id="hero-secondary-cta" class="btn btn-ghost" href="#routes">查看路线</a>
           </div>
           <div class="stat-row">
             <div class="stat">
               <p id="stat-photo-count">0</p>
-              <span>摄影作品</span>
+              <span id="stat-photo-label">摄影作品</span>
             </div>
             <div class="stat">
               <p id="stat-route-count">0</p>
-              <span>徒步路线</span>
+              <span id="stat-route-label">徒步路线</span>
             </div>
           </div>
         </div>
@@ -61,25 +61,25 @@
 
       <section id="routes" class="section reveal">
         <div class="section-head">
-          <p class="eyebrow">Routes</p>
-          <h2>徒步路线</h2>
+          <p id="routes-eyebrow" class="eyebrow">Routes</p>
+          <h2 id="routes-title">徒步路线</h2>
         </div>
         <div id="route-grid" class="route-grid"></div>
       </section>
 
       <section id="gallery" class="section reveal">
         <div class="section-head">
-          <p class="eyebrow">Photography</p>
-          <h2>摄影作品</h2>
+          <p id="gallery-eyebrow" class="eyebrow">Photography</p>
+          <h2 id="gallery-title">摄影作品</h2>
         </div>
         <div id="filter-row" class="filter-row"></div>
         <div id="gallery-grid" class="gallery-grid"></div>
       </section>
 
       <section id="about" class="section about reveal">
-        <p class="eyebrow">About TT</p>
-        <h2>山野不止是目的地，也是观看世界的方式</h2>
-        <p>
+        <p id="about-eyebrow" class="eyebrow">About TT</p>
+        <h2 id="about-title">山野不止是目的地，也是观看世界的方式</h2>
+        <p id="about-text">
           我叫 TT，偏好高海拔徒步与轻量化穿越。这个站点会持续更新我的徒步摄影和路线记录，后续也可以继续加入 GPX
           轨迹、海拔曲线和行程日志。
         </p>
@@ -101,9 +101,11 @@
     </div>
 
     <footer class="footer">
-      <p>© <span id="footer-year"></span> TT Outdoors. Crafted for hiking memory.</p>
+      <p>© <span id="footer-year"></span> <span id="footer-text">TT Outdoors. Crafted for hiking memory.</span></p>
+      <p><a class="admin-link" href="./admin.html">后台管理</a></p>
     </footer>
 
+    <script src="./site-data.js"></script>
     <script src="./script.js" defer></script>
   </body>
 </html>

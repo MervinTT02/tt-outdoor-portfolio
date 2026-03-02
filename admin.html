@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TT 后台管理</title>
+    <link rel="stylesheet" href="./admin.css" />
+  </head>
+  <body>
+    <header class="admin-topbar">
+      <h1>TT 后台管理</h1>
+      <div class="topbar-actions">
+        <a href="./index.html" target="_blank" rel="noreferrer">打开前台</a>
+      </div>
+    </header>
+
+    <main class="admin-main">
+      <section class="card card-login">
+        <h2>管理登录</h2>
+        <p>默认密码：`ttadmin`。首次进入建议立即修改。</p>
+        <div class="row">
+          <input id="login-passcode" type="password" placeholder="输入管理密码" />
+          <button id="login-btn" class="btn primary">登录</button>
+        </div>
+        <p id="login-msg" class="msg"></p>
+      </section>
+
+      <section id="admin-panel" class="admin-panel hidden">
+        <section class="card">
+          <h2>概览</h2>
+          <div class="stats">
+            <article><p id="stat-routes">0</p><span>路线数</span></article>
+            <article><p id="stat-photos">0</p><span>照片数</span></article>
+            <article><p id="stat-slides">0</p><span>轮播图数</span></article>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>站点文案</h2>
+          <div class="grid two">
+            <label>站点品牌文字<input id="f-brand-text" type="text" /></label>
+            <label>主标题<input id="f-hero-title" type="text" /></label>
+          </div>
+          <label>主描述<textarea id="f-hero-desc" rows="3"></textarea></label>
+          <div class="grid two">
+            <label>路线标题<input id="f-routes-title" type="text" /></label>
+            <label>摄影标题<input id="f-gallery-title" type="text" /></label>
+          </div>
+          <label>关于标题<input id="f-about-title" type="text" /></label>
+          <label>关于内容<textarea id="f-about-text" rows="3"></textarea></label>
+        </section>
+
+        <section class="card">
+          <h2>轮播设置</h2>
+          <div class="grid three">
+            <label>
+              停留时长(秒)
+              <input id="f-hero-interval" type="number" min="2" max="30" step="1" />
+            </label>
+            <label>
+              过渡时长(毫秒)
+              <input id="f-hero-transition" type="number" min="300" max="4000" step="50" />
+            </label>
+            <label>
+              播放模式
+              <select id="f-hero-play-mode">
+                <option value="shuffle-once">随机排序后顺播</option>
+                <option value="sequential">固定顺序顺播</option>
+                <option value="random-each">每次随机</option>
+              </select>
+            </label>
+          </div>
+          <label class="checkbox">
+            <input id="f-show-route-label" type="checkbox" />
+            显示轮播图路线标签
+          </label>
+          <div class="row">
+            <button id="build-20-landscape" class="btn">智能生成 20 张横构图轮播</button>
+          </div>
+
+          <div class="slide-builder">
+            <h3>新增轮播图</h3>
+            <div class="grid three">
+              <label>
+                选择路线
+                <select id="slide-route"></select>
+              </label>
+              <label class="span2">
+                选择照片
+                <select id="slide-photo"></select>
+              </label>
+            </div>
+            <button id="add-slide-btn" class="btn">添加到轮播列表</button>
+          </div>
+
+          <div class="slide-list">
+            <h3>轮播列表</h3>
+            <div id="slides-table"></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>路线管理</h2>
+          <div class="grid two">
+            <label>
+              当前路线
+              <select id="route-picker"></select>
+            </label>
+            <div class="row end">
+              <button id="new-route-btn" class="btn">新建路线</button>
+              <button id="delete-route-btn" class="btn danger">删除路线</button>
+            </div>
+          </div>
+          <div class="grid two">
+            <label>路线名称<input id="r-name" type="text" /></label>
+            <label>路线地点<input id="r-location" type="text" /></label>
+          </div>
+          <div class="grid two">
+            <label>路线强度<input id="r-effort" type="text" /></label>
+            <label>封面图路径<input id="r-cover" type="text" /></label>
+          </div>
+          <label>路线亮点<input id="r-highlight" type="text" /></label>
+          <label>
+            照片列表（每行一张）
+            <textarea id="r-photos" rows="8"></textarea>
+          </label>
+          <button id="save-route-btn" class="btn primary">保存当前路线</button>
+        </section>
+
+        <section class="card">
+          <h2>数据与发布</h2>
+          <div class="row wrap">
+            <button id="save-all-btn" class="btn primary">保存全部配置</button>
+            <button id="export-btn" class="btn">导出 JSON</button>
+            <button id="import-btn" class="btn">导入 JSON</button>
+            <button id="reset-btn" class="btn danger">恢复默认</button>
+            <button id="change-passcode-btn" class="btn">修改密码</button>
+          </div>
+          <input id="import-file" type="file" accept="application/json" class="hidden" />
+          <p class="tip">说明：当前后台为静态站本地存储模式，保存后会立即影响当前域名下的前台页面展示。</p>
+          <p id="save-msg" class="msg"></p>
+        </section>
+      </section>
+    </main>
+
+    <script src="./site-data.js"></script>
+    <script src="./admin.js"></script>
+  </body>
+</html>

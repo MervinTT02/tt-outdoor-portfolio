@@ -1,156 +1,102 @@
-const routes = [
-  {
-    id: "meili",
-    name: "云南德钦·梅里北坡",
-    location: "高海拔雪山区域",
-    effort: "多日重装穿越",
-    highlight: "雪峰、草甸、河谷与冰川地貌",
-    cover: "./个人摄影集/梅里北坡/DSC00483.jpg",
-    photos: [
-      "./个人摄影集/梅里北坡/DSC00362.jpg",
-      "./个人摄影集/梅里北坡/DSC00398.jpg",
-      "./个人摄影集/梅里北坡/DSC00483.jpg",
-      "./个人摄影集/梅里北坡/DSC00696.jpg",
-      "./个人摄影集/梅里北坡/DSC00745.jpg",
-      "./个人摄影集/梅里北坡/DSC00855.jpg",
-      "./个人摄影集/梅里北坡/DSC00874.jpg",
-      "./个人摄影集/梅里北坡/DSC00918.jpg",
-      "./个人摄影集/梅里北坡/DSC01046.jpg",
-      "./个人摄影集/梅里北坡/DSC01196.jpg",
-      "./个人摄影集/梅里北坡/DSC01209.jpg",
-      "./个人摄影集/梅里北坡/DSC01213.jpg",
-      "./个人摄影集/梅里北坡/DSC01214.jpg",
-      "./个人摄影集/梅里北坡/DSC01217.jpg",
-      "./个人摄影集/梅里北坡/DSC01221.jpg",
-      "./个人摄影集/梅里北坡/DSC01224.jpg",
-      "./个人摄影集/梅里北坡/DSC01234.jpg",
-      "./个人摄影集/梅里北坡/DSC01238.jpg",
-      "./个人摄影集/梅里北坡/DSC01243.jpg",
-      "./个人摄影集/梅里北坡/DSC01245-2.jpg",
-      "./个人摄影集/梅里北坡/DSC01254.jpg",
-      "./个人摄影集/梅里北坡/DSC01325.JPG",
-      "./个人摄影集/梅里北坡/IMG_20231005_135145.jpg",
-    ],
-  },
-  {
-    id: "rock",
-    name: "四川木里·洛克线",
-    location: "高山草甸与垭口线",
-    effort: "高强度连续徒步",
-    highlight: "云海、风化岩体、纵深山谷",
-    cover: "./个人摄影集/洛克线/微信图片_20241029225848.jpg",
-    photos: [
-      "./个人摄影集/洛克线/微信图片_20241029225405.jpg",
-      "./个人摄影集/洛克线/微信图片_20241029225507.jpg",
-      "./个人摄影集/洛克线/微信图片_20241029225538.jpg",
-      "./个人摄影集/洛克线/微信图片_20241029225542.jpg",
-      "./个人摄影集/洛克线/微信图片_20241029225547.jpg",
-      "./个人摄影集/洛克线/微信图片_20241029225629.jpg",
-      "./个人摄影集/洛克线/微信图片_20241029225717.jpg",
-      "./个人摄影集/洛克线/微信图片_20241029225723.jpg",
-      "./个人摄影集/洛克线/微信图片_20241029225727.jpg",
-      "./个人摄影集/洛克线/微信图片_20241029225737.jpg",
-      "./个人摄影集/洛克线/微信图片_20241029225804.jpg",
-      "./个人摄影集/洛克线/微信图片_20241029225827.jpg",
-      "./个人摄影集/洛克线/微信图片_20241029225848.jpg",
-      "./个人摄影集/洛克线/微信图片_20241029225856.jpg",
-      "./个人摄影集/洛克线/微信图片_20241029225900.jpg",
-      "./个人摄影集/洛克线/微信图片_20241029225904.jpg",
-      "./个人摄影集/洛克线/微信图片_20241029225911.jpg",
-      "./个人摄影集/洛克线/微信图片_20241029225926.jpg",
-    ],
-  },
-  {
-    id: "wugong",
-    name: "江西萍乡·武功山",
-    location: "高山草甸经典线",
-    effort: "周末强度徒步",
-    highlight: "连绵草坡、云雾营地与日落层次",
-    cover: "./个人摄影集/武功山/20240720-DSC03081.jpg",
-    photos: [
-      "./个人摄影集/武功山/20240720-DSC03047.jpg",
-      "./个人摄影集/武功山/20240720-DSC03062.jpg",
-      "./个人摄影集/武功山/20240720-DSC03063.jpg",
-      "./个人摄影集/武功山/20240720-DSC03081.jpg",
-      "./个人摄影集/武功山/20240720-DSC03082.jpg",
-      "./个人摄影集/武功山/20240720-DSC03083.jpg",
-      "./个人摄影集/武功山/20240720-DSC03101.jpg",
-      "./个人摄影集/武功山/20240720-DSC03102.jpg",
-    ],
-  },
-  {
-    id: "bamian",
-    name: "湖南郴州·八面山",
-    location: "南方山地线",
-    effort: "中高强度穿越",
-    highlight: "丘陵光影、山脊线条与天气变化",
-    cover: "./个人摄影集/郴州八面山/DSC06505.jpg",
-    photos: [
-      "./个人摄影集/郴州八面山/DSC06410.jpg",
-      "./个人摄影集/郴州八面山/DSC06449.jpg",
-      "./个人摄影集/郴州八面山/DSC06451.jpg",
-      "./个人摄影集/郴州八面山/DSC06483.jpg",
-      "./个人摄影集/郴州八面山/DSC06487.jpg",
-      "./个人摄影集/郴州八面山/DSC06493.jpg",
-      "./个人摄影集/郴州八面山/DSC06494.jpg",
-      "./个人摄影集/郴州八面山/DSC06495.jpg",
-      "./个人摄影集/郴州八面山/DSC06496.jpg",
-      "./个人摄影集/郴州八面山/DSC06497.jpg",
-      "./个人摄影集/郴州八面山/DSC06505.jpg",
-      "./个人摄影集/郴州八面山/DSC06506.jpg",
-      "./个人摄影集/郴州八面山/DSC06508.jpg",
-      "./个人摄影集/郴州八面山/DSC06515.jpg",
-      "./个人摄影集/郴州八面山/DSC06518.jpg",
-      "./个人摄影集/郴州八面山/DSC06522.jpg",
-    ],
-  },
-];
+const storage = window.TTStorage;
+const config = storage ? storage.getConfig() : window.TT_DEFAULT_CONFIG;
 
-const heroSlides = [
-  { src: "./个人摄影集/梅里北坡/DSC00362.jpg", route: "云南德钦·梅里北坡" },
-  { src: "./个人摄影集/梅里北坡/DSC00483.jpg", route: "云南德钦·梅里北坡" },
-  { src: "./个人摄影集/梅里北坡/DSC00696.jpg", route: "云南德钦·梅里北坡" },
-  { src: "./个人摄影集/梅里北坡/DSC00874.jpg", route: "云南德钦·梅里北坡" },
-  { src: "./个人摄影集/梅里北坡/DSC01254.jpg", route: "云南德钦·梅里北坡" },
-  { src: "./个人摄影集/洛克线/微信图片_20241029225405.jpg", route: "四川木里·洛克线" },
-  { src: "./个人摄影集/洛克线/微信图片_20241029225542.jpg", route: "四川木里·洛克线" },
-  { src: "./个人摄影集/洛克线/微信图片_20241029225629.jpg", route: "四川木里·洛克线" },
-  { src: "./个人摄影集/洛克线/微信图片_20241029225727.jpg", route: "四川木里·洛克线" },
-  { src: "./个人摄影集/洛克线/微信图片_20241029225848.jpg", route: "四川木里·洛克线" },
-  { src: "./个人摄影集/武功山/20240720-DSC03047.jpg", route: "江西萍乡·武功山" },
-  { src: "./个人摄影集/武功山/20240720-DSC03063.jpg", route: "江西萍乡·武功山" },
-  { src: "./个人摄影集/武功山/20240720-DSC03081.jpg", route: "江西萍乡·武功山" },
-  { src: "./个人摄影集/武功山/20240720-DSC03083.jpg", route: "江西萍乡·武功山" },
-  { src: "./个人摄影集/武功山/20240720-DSC03102.jpg", route: "江西萍乡·武功山" },
-  { src: "./个人摄影集/郴州八面山/DSC06483.jpg", route: "湖南郴州·八面山" },
-  { src: "./个人摄影集/郴州八面山/DSC06494.jpg", route: "湖南郴州·八面山" },
-  { src: "./个人摄影集/郴州八面山/DSC06505.jpg", route: "湖南郴州·八面山" },
-  { src: "./个人摄影集/郴州八面山/DSC06518.jpg", route: "湖南郴州·八面山" },
-  { src: "./个人摄影集/郴州八面山/DSC06522.jpg", route: "湖南郴州·八面山" },
-];
+const site = config.site || {};
+const heroConfig = config.hero || {};
+const galleryConfig = config.gallery || {};
+const routes = Array.isArray(config.routes) ? config.routes : [];
+
+const routeNameById = Object.fromEntries(routes.map((route) => [route.id, route.name]));
 
 const allPhotos = routes.flatMap((route) =>
-  route.photos.map((src, index) => ({
+  (route.photos || []).map((src, index) => ({
     routeId: route.id,
     routeName: route.name,
     src,
     index: index + 1,
-    fileName: getFileName(src),
   })),
 );
 
 let activeFilter = "all";
 let visiblePhotos = allPhotos;
 let lightboxIndex = 0;
+
 let heroSlideIndex = 0;
 let heroSlideTimer = null;
+let heroPlaybackOrder = [];
 
 function assetPath(path) {
   return encodeURI(path).replace(/#/g, "%23");
 }
 
-function getFileName(path) {
-  return path.split("/").pop() || "";
+function clampNumber(value, min, max, fallback) {
+  const parsed = Number(value);
+  if (Number.isNaN(parsed)) return fallback;
+  return Math.min(max, Math.max(min, parsed));
+}
+
+function normalizeSlides(slides) {
+  if (!Array.isArray(slides)) return [];
+  return slides
+    .filter((slide) => slide && typeof slide.src === "string")
+    .map((slide) => ({
+      src: slide.src,
+      routeId: slide.routeId || "",
+      routeName: slide.routeName || "",
+    }));
+}
+
+function shuffleIndices(length) {
+  const order = Array.from({ length }, (_, index) => index);
+  for (let i = order.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return order;
+}
+
+function applySiteCopy() {
+  const setText = (id, value) => {
+    if (!value) return;
+    const node = document.getElementById(id);
+    if (node) node.textContent = value;
+  };
+
+  setText("brand-mark", site.brandMark);
+  setText("brand-text", site.brandText);
+  setText("nav-routes", site.navRoutes);
+  setText("nav-gallery", site.navGallery);
+  setText("nav-about", site.navAbout);
+
+  setText("hero-eyebrow", site.heroEyebrow);
+  setText("hero-title", site.heroTitle);
+  setText("hero-desc", site.heroDesc);
+  setText("hero-primary-cta", site.heroPrimaryCta);
+  setText("hero-secondary-cta", site.heroSecondaryCta);
+
+  setText("stat-photo-label", site.statsPhotoLabel);
+  setText("stat-route-label", site.statsRouteLabel);
+
+  setText("routes-eyebrow", site.routesEyebrow);
+  setText("routes-title", site.routesTitle);
+  setText("gallery-eyebrow", site.galleryEyebrow);
+  setText("gallery-title", site.galleryTitle);
+
+  setText("about-eyebrow", site.aboutEyebrow);
+  setText("about-title", site.aboutTitle);
+  setText("about-text", site.aboutText);
+
+  setText("footer-text", site.footerText);
+}
+
+function applyGallerySettings() {
+  const desktopWidth = clampNumber(galleryConfig.desktopColumnWidth, 220, 500, 320);
+  const mobileWidth = clampNumber(galleryConfig.mobileColumnWidth, 140, 320, 190);
+  const gap = clampNumber(galleryConfig.columnGap, 6, 30, 14);
+
+  document.documentElement.style.setProperty("--gallery-column-width", `${desktopWidth}px`);
+  document.documentElement.style.setProperty("--gallery-mobile-column-width", `${mobileWidth}px`);
+  document.documentElement.style.setProperty("--gallery-gap", `${gap / 16}rem`);
 }
 
 function setStats() {
@@ -158,71 +104,126 @@ function setStats() {
   const routeCountEl = document.getElementById("stat-route-count");
   const footerYearEl = document.getElementById("footer-year");
 
-  if (photoCountEl) {
-    photoCountEl.textContent = String(allPhotos.length);
+  if (photoCountEl) photoCountEl.textContent = String(allPhotos.length);
+  if (routeCountEl) routeCountEl.textContent = String(routes.length);
+  if (footerYearEl) footerYearEl.textContent = String(new Date().getFullYear());
+}
+
+function getSlideRouteName(slide) {
+  if (slide.routeId && routeNameById[slide.routeId]) {
+    return routeNameById[slide.routeId];
   }
-  if (routeCountEl) {
-    routeCountEl.textContent = String(routes.length);
+  if (slide.routeName) return slide.routeName;
+  return site.routesTitle || "徒步路线";
+}
+
+function buildPlaybackOrder(slides, playMode) {
+  if (slides.length === 0) return [];
+  if (playMode === "sequential") {
+    return Array.from({ length: slides.length }, (_, index) => index);
   }
-  if (footerYearEl) {
-    footerYearEl.textContent = String(new Date().getFullYear());
+  if (playMode === "shuffle-once") {
+    return shuffleIndices(slides.length);
   }
+  return Array.from({ length: slides.length }, (_, index) => index);
 }
 
 function startHeroSlideshow() {
   const hero = document.getElementById("hero-cover");
   const heroRouteLabel = document.getElementById("hero-route-label");
-  if (!hero || heroSlides.length === 0) return;
+  const slides = normalizeSlides(heroConfig.slides);
+  if (!hero || slides.length === 0) return;
 
-  const shuffledSlides = [...heroSlides];
-  for (let i = shuffledSlides.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffledSlides[i], shuffledSlides[j]] = [shuffledSlides[j], shuffledSlides[i]];
+  const intervalMs = clampNumber(heroConfig.intervalMs, 2000, 30000, 7000);
+  const transitionMs = clampNumber(heroConfig.transitionMs, 300, 4000, 1150);
+  const playMode = ["shuffle-once", "sequential", "random-each"].includes(
+    heroConfig.playMode,
+  )
+    ? heroConfig.playMode
+    : "shuffle-once";
+  const showRouteLabel = heroConfig.showRouteLabel !== false;
+
+  document.documentElement.style.setProperty("--hero-transition-ms", `${transitionMs}ms`);
+
+  if (heroRouteLabel) {
+    heroRouteLabel.style.display = showRouteLabel ? "inline-flex" : "none";
   }
 
-  const showSlide = (index, immediate = false) => {
-    const slide = shuffledSlides[index];
+  heroPlaybackOrder = buildPlaybackOrder(slides, playMode);
+  heroSlideIndex = 0;
+
+  const getCurrentSlide = () => {
+    if (playMode === "random-each") {
+      return slides[heroSlideIndex];
+    }
+    const mappedIndex = heroPlaybackOrder[heroSlideIndex] ?? 0;
+    return slides[mappedIndex];
+  };
+
+  const nextRandomIndex = () => {
+    if (slides.length < 2) return 0;
+    let next = heroSlideIndex;
+    while (next === heroSlideIndex) {
+      next = Math.floor(Math.random() * slides.length);
+    }
+    return next;
+  };
+
+  const showSlide = (immediate = false) => {
+    const slide = getCurrentSlide();
     if (!slide) return;
+
     hero.style.opacity = immediate ? "1" : "0.38";
-    if (heroRouteLabel) {
+    if (heroRouteLabel && showRouteLabel) {
       heroRouteLabel.style.opacity = "0";
     }
+
     window.setTimeout(() => {
+      const routeName = getSlideRouteName(slide);
       hero.src = assetPath(slide.src);
-      hero.alt = `${slide.route} 主视觉`;
-      if (heroRouteLabel) {
-        heroRouteLabel.textContent = slide.route;
+      hero.alt = `${routeName} 主视觉`;
+      if (heroRouteLabel && showRouteLabel) {
+        heroRouteLabel.textContent = routeName;
         heroRouteLabel.style.opacity = "1";
       }
       hero.style.opacity = "1";
-    }, immediate ? 0 : 450);
+    }, immediate ? 0 : Math.round(transitionMs * 0.4));
   };
 
-  heroSlideIndex = 0;
-  showSlide(heroSlideIndex, true);
+  if (playMode === "random-each") {
+    heroSlideIndex = Math.floor(Math.random() * slides.length);
+  }
+  showSlide(true);
+
   if (heroSlideTimer) window.clearInterval(heroSlideTimer);
   heroSlideTimer = window.setInterval(() => {
-    heroSlideIndex = (heroSlideIndex + 1) % shuffledSlides.length;
-    showSlide(heroSlideIndex);
-  }, 7000);
+    if (playMode === "random-each") {
+      heroSlideIndex = nextRandomIndex();
+    } else {
+      heroSlideIndex = (heroSlideIndex + 1) % heroPlaybackOrder.length;
+    }
+    showSlide(false);
+  }, intervalMs);
 }
 
 function renderRoutes() {
   const routeGrid = document.getElementById("route-grid");
+  if (!routeGrid) return;
   routeGrid.innerHTML = "";
 
   routes.forEach((route) => {
     const card = document.createElement("article");
     card.className = "route-card";
-    const cover = route.cover || route.photos[0];
+    const cover = route.cover || (route.photos && route.photos[0]) || "";
+
     card.innerHTML = `
       <img src="${assetPath(cover)}" alt="${route.name} 封面" loading="lazy" />
       <div class="route-body">
         <h3 class="route-name">${route.name}</h3>
-        <p class="route-meta">${route.location}</p>
-        <p class="route-meta">${route.effort}</p>
-        <p class="route-highlight">${route.highlight}</p>
-        <button class="route-action" data-route-id="${route.id}">查看该路线作品（${route.photos.length}）</button>
+        <p class="route-meta">${route.location || ""}</p>
+        <p class="route-meta">${route.effort || ""}</p>
+        <p class="route-highlight">${route.highlight || ""}</p>
+        <button class="route-action" data-route-id="${route.id}">查看该路线作品（${(route.photos || []).length}）</button>
       </div>
     `;
     routeGrid.appendChild(card);
@@ -233,16 +234,17 @@ function renderRoutes() {
       const routeId = button.getAttribute("data-route-id");
       if (!routeId) return;
       setFilter(routeId);
-      document.getElementById("gallery").scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+      const gallery = document.getElementById("gallery");
+      if (gallery) {
+        gallery.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     });
   });
 }
 
 function renderFilters() {
   const filterRow = document.getElementById("filter-row");
+  if (!filterRow) return;
   filterRow.innerHTML = "";
 
   const allBtn = document.createElement("button");
@@ -254,7 +256,7 @@ function renderFilters() {
   routes.forEach((route) => {
     const button = document.createElement("button");
     button.className = `filter-btn ${activeFilter === route.id ? "active" : ""}`;
-    button.textContent = `${route.name} (${route.photos.length})`;
+    button.textContent = `${route.name} (${(route.photos || []).length})`;
     button.addEventListener("click", () => setFilter(route.id));
     filterRow.appendChild(button);
   });
@@ -272,14 +274,13 @@ function setFilter(routeId) {
 
 function renderGallery() {
   const gallery = document.getElementById("gallery-grid");
+  if (!gallery) return;
   gallery.innerHTML = "";
 
   visiblePhotos.forEach((photo, index) => {
     const card = document.createElement("article");
     card.className = "photo-card";
-    card.innerHTML = `
-      <img src="${assetPath(photo.src)}" alt="${photo.routeName} 第 ${photo.index} 张" loading="lazy" decoding="async" />
-    `;
+    card.innerHTML = `<img src="${assetPath(photo.src)}" alt="${photo.routeName} 第 ${photo.index} 张" loading="lazy" decoding="async" />`;
     card.addEventListener("click", () => openLightbox(index));
     gallery.appendChild(card);
   });
@@ -288,6 +289,7 @@ function renderGallery() {
 function openLightbox(index) {
   lightboxIndex = index;
   const lightbox = document.getElementById("lightbox");
+  if (!lightbox) return;
   lightbox.classList.add("open");
   lightbox.setAttribute("aria-hidden", "false");
   document.body.style.overflow = "hidden";
@@ -296,6 +298,7 @@ function openLightbox(index) {
 
 function closeLightbox() {
   const lightbox = document.getElementById("lightbox");
+  if (!lightbox) return;
   lightbox.classList.remove("open");
   lightbox.setAttribute("aria-hidden", "true");
   document.body.style.overflow = "";
@@ -306,6 +309,8 @@ function renderLightbox() {
   if (!current) return;
   const image = document.getElementById("lightbox-image");
   const caption = document.getElementById("lightbox-caption");
+  if (!image || !caption) return;
+
   image.src = assetPath(current.src);
   image.alt = `${current.routeName} 大图预览`;
   caption.textContent = current.routeName;
@@ -323,17 +328,23 @@ function showNext() {
 }
 
 function bindLightboxEvents() {
-  document
-    .getElementById("lightbox-close")
-    .addEventListener("click", closeLightbox);
-  document.getElementById("lightbox-prev").addEventListener("click", showPrev);
-  document.getElementById("lightbox-next").addEventListener("click", showNext);
-  document.getElementById("lightbox").addEventListener("click", (event) => {
-    if (event.target.id === "lightbox") closeLightbox();
-  });
+  const closeBtn = document.getElementById("lightbox-close");
+  const prevBtn = document.getElementById("lightbox-prev");
+  const nextBtn = document.getElementById("lightbox-next");
+  const lightbox = document.getElementById("lightbox");
+
+  if (closeBtn) closeBtn.addEventListener("click", closeLightbox);
+  if (prevBtn) prevBtn.addEventListener("click", showPrev);
+  if (nextBtn) nextBtn.addEventListener("click", showNext);
+
+  if (lightbox) {
+    lightbox.addEventListener("click", (event) => {
+      if (event.target.id === "lightbox") closeLightbox();
+    });
+  }
+
   document.addEventListener("keydown", (event) => {
-    const lightbox = document.getElementById("lightbox");
-    if (!lightbox.classList.contains("open")) return;
+    if (!lightbox || !lightbox.classList.contains("open")) return;
     if (event.key === "Escape") closeLightbox();
     if (event.key === "ArrowLeft") showPrev();
     if (event.key === "ArrowRight") showNext();
@@ -357,6 +368,8 @@ function initReveal() {
 }
 
 function init() {
+  applySiteCopy();
+  applyGallerySettings();
   setStats();
   startHeroSlideshow();
   renderRoutes();
