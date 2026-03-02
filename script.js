@@ -1,11 +1,11 @@
 const routes = [
   {
     id: "meili",
-    name: "梅里北坡",
-    location: "云南 · 高海拔雪山区域",
-    period: "2023 年秋季",
+    name: "云南德钦·梅里北坡",
+    location: "高海拔雪山区域",
     effort: "多日重装穿越",
     highlight: "雪峰、草甸、河谷与冰川地貌",
+    cover: "./个人摄影集/梅里北坡/DSC00483.jpg",
     photos: [
       "./个人摄影集/梅里北坡/DSC00362.jpg",
       "./个人摄影集/梅里北坡/DSC00398.jpg",
@@ -34,11 +34,11 @@ const routes = [
   },
   {
     id: "rock",
-    name: "洛克线",
-    location: "四川 · 高山草甸与垭口线",
-    period: "2024 年秋季",
+    name: "四川木里·洛克线",
+    location: "高山草甸与垭口线",
     effort: "高强度连续徒步",
     highlight: "云海、风化岩体、纵深山谷",
+    cover: "./个人摄影集/洛克线/微信图片_20241029225848.jpg",
     photos: [
       "./个人摄影集/洛克线/微信图片_20241029225405.jpg",
       "./个人摄影集/洛克线/微信图片_20241029225507.jpg",
@@ -62,11 +62,11 @@ const routes = [
   },
   {
     id: "wugong",
-    name: "武功山",
-    location: "江西 · 高山草甸经典线",
-    period: "2024 年 7 月",
+    name: "江西萍乡·武功山",
+    location: "高山草甸经典线",
     effort: "周末强度徒步",
     highlight: "连绵草坡、云雾营地与日落层次",
+    cover: "./个人摄影集/武功山/20240720-DSC03081.jpg",
     photos: [
       "./个人摄影集/武功山/20240720-DSC03047.jpg",
       "./个人摄影集/武功山/20240720-DSC03062.jpg",
@@ -80,11 +80,11 @@ const routes = [
   },
   {
     id: "bamian",
-    name: "郴州八面山",
-    location: "湖南 · 南方山地线",
-    period: "年份可补充",
+    name: "湖南郴州·八面山",
+    location: "南方山地线",
     effort: "中高强度穿越",
     highlight: "丘陵光影、山脊线条与天气变化",
+    cover: "./个人摄影集/郴州八面山/DSC06505.jpg",
     photos: [
       "./个人摄影集/郴州八面山/DSC06410.jpg",
       "./个人摄影集/郴州八面山/DSC06449.jpg",
@@ -106,6 +106,19 @@ const routes = [
   },
 ];
 
+const heroSlides = [
+  "./个人摄影集/梅里北坡/DSC00483.jpg",
+  "./个人摄影集/梅里北坡/DSC01209.jpg",
+  "./个人摄影集/梅里北坡/DSC01238.jpg",
+  "./个人摄影集/洛克线/微信图片_20241029225848.jpg",
+  "./个人摄影集/洛克线/微信图片_20241029225727.jpg",
+  "./个人摄影集/武功山/20240720-DSC03081.jpg",
+  "./个人摄影集/武功山/20240720-DSC03102.jpg",
+  "./个人摄影集/郴州八面山/DSC06505.jpg",
+  "./个人摄影集/郴州八面山/DSC06518.jpg",
+  "./个人摄影集/梅里北坡/DSC01254.jpg",
+];
+
 const allPhotos = routes.flatMap((route) =>
   route.photos.map((src, index) => ({
     routeId: route.id,
@@ -119,6 +132,8 @@ const allPhotos = routes.flatMap((route) =>
 let activeFilter = "all";
 let visiblePhotos = allPhotos;
 let lightboxIndex = 0;
+let heroSlideIndex = 0;
+let heroSlideTimer = null;
 
 function assetPath(path) {
   return encodeURI(path).replace(/#/g, "%23");
@@ -137,21 +152,29 @@ function setStats() {
     allPhotos.length,
   );
   document.getElementById("stat-route-count").textContent = String(routes.length);
-  document.getElementById("stat-updated").textContent = "v1.0";
   document.getElementById("footer-year").textContent = String(
     new Date().getFullYear(),
   );
 }
 
-function setHeroCover() {
+function startHeroSlideshow() {
   const hero = document.getElementById("hero-cover");
-  const picks = routes
-    .map((route) => route.photos[Math.floor(Math.random() * route.photos.length)])
-    .filter(Boolean);
-  const selected = picks[Math.floor(Math.random() * picks.length)];
-  if (selected) {
-    hero.src = assetPath(selected);
-  }
+  if (!hero || heroSlides.length === 0) return;
+
+  const showSlide = (index) => {
+    hero.style.opacity = "0.12";
+    window.setTimeout(() => {
+      hero.src = assetPath(heroSlides[index]);
+      hero.style.opacity = "1";
+    }, 170);
+  };
+
+  showSlide(heroSlideIndex);
+  if (heroSlideTimer) window.clearInterval(heroSlideTimer);
+  heroSlideTimer = window.setInterval(() => {
+    heroSlideIndex = (heroSlideIndex + 1) % heroSlides.length;
+    showSlide(heroSlideIndex);
+  }, 4200);
 }
 
 function renderRoutes() {
@@ -161,12 +184,12 @@ function renderRoutes() {
   routes.forEach((route) => {
     const card = document.createElement("article");
     card.className = "route-card";
-    const cover = route.photos[Math.floor(route.photos.length / 2)] || route.photos[0];
+    const cover = route.cover || route.photos[0];
     card.innerHTML = `
       <img src="${assetPath(cover)}" alt="${route.name} 封面" loading="lazy" />
       <div class="route-body">
         <h3 class="route-name">${route.name}</h3>
-        <p class="route-meta">${route.location} · ${route.period}</p>
+        <p class="route-meta">${route.location}</p>
         <p class="route-meta">${route.effort}</p>
         <p class="route-highlight">${route.highlight}</p>
         <button class="route-action" data-route-id="${route.id}">查看该路线作品（${route.photos.length}）</button>
@@ -226,9 +249,6 @@ function renderGallery() {
     card.className = "photo-card";
     card.innerHTML = `
       <img src="${assetPath(photo.src)}" alt="${photo.routeName} 第 ${photo.index} 张" loading="lazy" decoding="async" />
-      <div class="photo-caption">
-        <p>${photo.routeName} · ${shortName(photo.fileName)}</p>
-      </div>
     `;
     card.addEventListener("click", () => openLightbox(index));
     gallery.appendChild(card);
@@ -308,7 +328,7 @@ function initReveal() {
 
 function init() {
   setStats();
-  setHeroCover();
+  startHeroSlideshow();
   renderRoutes();
   renderFilters();
   renderGallery();
