@@ -148,13 +148,19 @@ function shortName(fileName) {
 }
 
 function setStats() {
-  document.getElementById("stat-photo-count").textContent = String(
-    allPhotos.length,
-  );
-  document.getElementById("stat-route-count").textContent = String(routes.length);
-  document.getElementById("footer-year").textContent = String(
-    new Date().getFullYear(),
-  );
+  const photoCountEl = document.getElementById("stat-photo-count");
+  const routeCountEl = document.getElementById("stat-route-count");
+  const footerYearEl = document.getElementById("footer-year");
+
+  if (photoCountEl) {
+    photoCountEl.textContent = String(allPhotos.length);
+  }
+  if (routeCountEl) {
+    routeCountEl.textContent = String(routes.length);
+  }
+  if (footerYearEl) {
+    footerYearEl.textContent = String(new Date().getFullYear());
+  }
 }
 
 function startHeroSlideshow() {
