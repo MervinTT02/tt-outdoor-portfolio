@@ -236,6 +236,7 @@ h1 {
 }
 
 .hero-media {
+  position: relative;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.5);
 }
@@ -246,7 +247,23 @@ h1 {
   height: 100%;
   min-height: 420px;
   object-fit: cover;
-  transition: opacity 0.42s ease;
+  transition: opacity 1.15s cubic-bezier(0.28, 0.11, 0.18, 1);
+}
+
+.hero-route-label {
+  position: absolute;
+  left: 1.1rem;
+  bottom: 1rem;
+  margin: 0;
+  padding: 0.32rem 0.7rem;
+  font-size: 0.8rem;
+  color: #f4f8ff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(11, 16, 26, 0.34);
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
+  letter-spacing: 0.01em;
+  transition: opacity 0.7s ease;
 }
 
 .section {
@@ -349,12 +366,12 @@ h2 {
 
 .gallery-grid {
   margin-top: 0.82rem;
-  columns: 4 240px;
-  column-gap: 0.72rem;
+  columns: 3 320px;
+  column-gap: 0.88rem;
 }
 
 .photo-card {
-  margin: 0 0 0.72rem;
+  margin: 0 0 0.88rem;
   break-inside: avoid;
   border-radius: 12px;
   overflow: hidden;
@@ -473,6 +490,10 @@ h2 {
     min-height: 340px;
   }
 
+  .gallery-grid {
+    columns: 2 280px;
+  }
+
   .route-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -508,7 +529,7 @@ h2 {
   }
 
   .gallery-grid {
-    columns: 2 160px;
+    columns: 2 190px;
   }
 
   .lightbox-nav {

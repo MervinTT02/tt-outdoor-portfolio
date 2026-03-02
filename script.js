@@ -107,16 +107,26 @@ const routes = [
 ];
 
 const heroSlides = [
-  "./个人摄影集/梅里北坡/DSC00483.jpg",
-  "./个人摄影集/梅里北坡/DSC01209.jpg",
-  "./个人摄影集/梅里北坡/DSC01238.jpg",
-  "./个人摄影集/洛克线/微信图片_20241029225848.jpg",
-  "./个人摄影集/洛克线/微信图片_20241029225727.jpg",
-  "./个人摄影集/武功山/20240720-DSC03081.jpg",
-  "./个人摄影集/武功山/20240720-DSC03102.jpg",
-  "./个人摄影集/郴州八面山/DSC06505.jpg",
-  "./个人摄影集/郴州八面山/DSC06518.jpg",
-  "./个人摄影集/梅里北坡/DSC01254.jpg",
+  { src: "./个人摄影集/梅里北坡/DSC00362.jpg", route: "云南德钦·梅里北坡" },
+  { src: "./个人摄影集/梅里北坡/DSC00483.jpg", route: "云南德钦·梅里北坡" },
+  { src: "./个人摄影集/梅里北坡/DSC00696.jpg", route: "云南德钦·梅里北坡" },
+  { src: "./个人摄影集/梅里北坡/DSC00874.jpg", route: "云南德钦·梅里北坡" },
+  { src: "./个人摄影集/梅里北坡/DSC01254.jpg", route: "云南德钦·梅里北坡" },
+  { src: "./个人摄影集/洛克线/微信图片_20241029225405.jpg", route: "四川木里·洛克线" },
+  { src: "./个人摄影集/洛克线/微信图片_20241029225542.jpg", route: "四川木里·洛克线" },
+  { src: "./个人摄影集/洛克线/微信图片_20241029225629.jpg", route: "四川木里·洛克线" },
+  { src: "./个人摄影集/洛克线/微信图片_20241029225727.jpg", route: "四川木里·洛克线" },
+  { src: "./个人摄影集/洛克线/微信图片_20241029225848.jpg", route: "四川木里·洛克线" },
+  { src: "./个人摄影集/武功山/20240720-DSC03047.jpg", route: "江西萍乡·武功山" },
+  { src: "./个人摄影集/武功山/20240720-DSC03063.jpg", route: "江西萍乡·武功山" },
+  { src: "./个人摄影集/武功山/20240720-DSC03081.jpg", route: "江西萍乡·武功山" },
+  { src: "./个人摄影集/武功山/20240720-DSC03083.jpg", route: "江西萍乡·武功山" },
+  { src: "./个人摄影集/武功山/20240720-DSC03102.jpg", route: "江西萍乡·武功山" },
+  { src: "./个人摄影集/郴州八面山/DSC06483.jpg", route: "湖南郴州·八面山" },
+  { src: "./个人摄影集/郴州八面山/DSC06494.jpg", route: "湖南郴州·八面山" },
+  { src: "./个人摄影集/郴州八面山/DSC06505.jpg", route: "湖南郴州·八面山" },
+  { src: "./个人摄影集/郴州八面山/DSC06518.jpg", route: "湖南郴州·八面山" },
+  { src: "./个人摄影集/郴州八面山/DSC06522.jpg", route: "湖南郴州·八面山" },
 ];
 
 const allPhotos = routes.flatMap((route) =>
@@ -143,10 +153,6 @@ function getFileName(path) {
   return path.split("/").pop() || "";
 }
 
-function shortName(fileName) {
-  return fileName.replace(/\.[^/.]+$/, "");
-}
-
 function setStats() {
   const photoCountEl = document.getElementById("stat-photo-count");
   const routeCountEl = document.getElementById("stat-route-count");
@@ -165,22 +171,43 @@ function setStats() {
 
 function startHeroSlideshow() {
   const hero = document.getElementById("hero-cover");
+  const heroRouteLabel = document.getElementById("hero-route-label");
   if (!hero || heroSlides.length === 0) return;
 
-  const showSlide = (index) => {
-    hero.style.opacity = "0.12";
-    window.setTimeout(() => {
-      hero.src = assetPath(heroSlides[index]);
-      hero.style.opacity = "1";
-    }, 170);
+  const pickNextRandomIndex = () => {
+    if (heroSlides.length < 2) return 0;
+    let next = heroSlideIndex;
+    while (next === heroSlideIndex) {
+      next = Math.floor(Math.random() * heroSlides.length);
+    }
+    return next;
   };
 
-  showSlide(heroSlideIndex);
+  const showSlide = (index, immediate = false) => {
+    const slide = heroSlides[index];
+    if (!slide) return;
+    hero.style.opacity = immediate ? "1" : "0.38";
+    if (heroRouteLabel) {
+      heroRouteLabel.style.opacity = "0";
+    }
+    window.setTimeout(() => {
+      hero.src = assetPath(slide.src);
+      hero.alt = `${slide.route} 主视觉`;
+      if (heroRouteLabel) {
+        heroRouteLabel.textContent = slide.route;
+        heroRouteLabel.style.opacity = "1";
+      }
+      hero.style.opacity = "1";
+    }, immediate ? 0 : 450);
+  };
+
+  heroSlideIndex = Math.floor(Math.random() * heroSlides.length);
+  showSlide(heroSlideIndex, true);
   if (heroSlideTimer) window.clearInterval(heroSlideTimer);
   heroSlideTimer = window.setInterval(() => {
-    heroSlideIndex = (heroSlideIndex + 1) % heroSlides.length;
+    heroSlideIndex = pickNextRandomIndex();
     showSlide(heroSlideIndex);
-  }, 4200);
+  }, 7000);
 }
 
 function renderRoutes() {
@@ -284,7 +311,7 @@ function renderLightbox() {
   const caption = document.getElementById("lightbox-caption");
   image.src = assetPath(current.src);
   image.alt = `${current.routeName} 大图预览`;
-  caption.textContent = `${current.routeName} · ${shortName(current.fileName)} · ${lightboxIndex + 1} / ${visiblePhotos.length}`;
+  caption.textContent = current.routeName;
 }
 
 function showPrev() {
