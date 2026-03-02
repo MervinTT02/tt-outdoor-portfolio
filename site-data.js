@@ -1,5 +1,12 @@
 (function () {
   const STORAGE_KEY = "tt_site_config_v1";
+  const REMOVED_ASSETS = new Set([
+    "./个人摄影集/梅里北坡/DSC01224.jpg",
+    "./个人摄影集/梅里北坡/DSC01234.jpg",
+    "./个人摄影集/梅里北坡/DSC01238.jpg",
+    "./个人摄影集/梅里北坡/DSC01243.jpg",
+    "./个人摄影集/梅里北坡/DSC01245-2.jpg",
+  ]);
 
   const DEFAULT_CONFIG = {
     site: {
@@ -81,11 +88,6 @@
           "./个人摄影集/梅里北坡/DSC01214.jpg",
           "./个人摄影集/梅里北坡/DSC01217.jpg",
           "./个人摄影集/梅里北坡/DSC01221.jpg",
-          "./个人摄影集/梅里北坡/DSC01224.jpg",
-          "./个人摄影集/梅里北坡/DSC01234.jpg",
-          "./个人摄影集/梅里北坡/DSC01238.jpg",
-          "./个人摄影集/梅里北坡/DSC01243.jpg",
-          "./个人摄影集/梅里北坡/DSC01245-2.jpg",
           "./个人摄影集/梅里北坡/DSC01254.jpg",
         ],
       },
@@ -168,6 +170,31 @@
     return JSON.parse(JSON.stringify(obj));
   }
 
+  function sanitizeConfig(config) {
+    const cleaned = deepClone(config);
+
+    if (Array.isArray(cleaned.routes)) {
+      cleaned.routes = cleaned.routes.map((route) => {
+        const next = { ...route };
+        next.photos = Array.isArray(next.photos)
+          ? next.photos.filter((photo) => !REMOVED_ASSETS.has(photo))
+          : [];
+        if (next.cover && REMOVED_ASSETS.has(next.cover)) {
+          next.cover = next.photos[0] || "";
+        }
+        return next;
+      });
+    }
+
+    if (cleaned.hero && Array.isArray(cleaned.hero.slides)) {
+      cleaned.hero.slides = cleaned.hero.slides.filter(
+        (slide) => slide && typeof slide.src === "string" && !REMOVED_ASSETS.has(slide.src),
+      );
+    }
+
+    return cleaned;
+  }
+
   function mergeDefaults(base, incoming) {
     if (Array.isArray(base)) {
       return Array.isArray(incoming) ? incoming : deepClone(base);
@@ -192,11 +219,11 @@
     const fallback = deepClone(DEFAULT_CONFIG);
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return fallback;
+      if (!raw) return sanitizeConfig(fallback);
       const parsed = JSON.parse(raw);
-      return mergeDefaults(fallback, parsed);
+      return sanitizeConfig(mergeDefaults(fallback, parsed));
     } catch (error) {
-      return fallback;
+      return sanitizeConfig(fallback);
     }
   }
 
