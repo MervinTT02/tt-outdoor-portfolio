@@ -15,9 +15,8 @@
     </header>
 
     <main class="admin-main">
-      <section class="card card-login">
+      <section id="login-card" class="card card-login">
         <h2>管理登录</h2>
-        <p>默认密码：`ttadmin`。首次进入建议立即修改。</p>
         <div class="row">
           <input id="login-passcode" type="password" placeholder="输入管理密码" />
           <button id="login-btn" class="btn primary">登录</button>
@@ -124,6 +123,15 @@
             照片列表（每行一张）
             <textarea id="r-photos" rows="8"></textarea>
           </label>
+          <div class="photo-manager">
+            <h3>本地上传与删除</h3>
+            <div class="row wrap">
+              <input id="r-upload-files" type="file" accept="image/*" multiple />
+              <button id="r-upload-btn" class="btn">上传并加入当前路线</button>
+            </div>
+            <p class="tip">上传会压缩后保存到本地浏览器存储，单次建议少量图片。</p>
+            <div id="r-photo-list"></div>
+          </div>
           <button id="save-route-btn" class="btn primary">保存当前路线</button>
         </section>
 

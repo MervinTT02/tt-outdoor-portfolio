@@ -26,6 +26,9 @@ let heroSlideTimer = null;
 let heroPlaybackOrder = [];
 
 function assetPath(path) {
+  if (typeof path === "string" && path.startsWith("data:")) {
+    return path;
+  }
   return encodeURI(path).replace(/#/g, "%23");
 }
 

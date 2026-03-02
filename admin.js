@@ -10,6 +10,12 @@ function byId(id) {
   return document.getElementById(id);
 }
 
+function toAssetSrc(path) {
+  if (typeof path !== "string") return "";
+  if (path.startsWith("data:")) return path;
+  return encodeURI(path);
+}
+
 function showMessage(id, text, isError = false) {
   const node = byId(id);
   if (!node) return;
@@ -102,7 +108,7 @@ function renderSlidesTable() {
           .map(
             (slide, index) => `
           <tr>
-            <td><img src="${encodeURI(slide.src)}" alt="slide-${index}" /></td>
+            <td><img src="${toAssetSrc(slide.src)}" alt="slide-${index}" /></td>
             <td>${nameMap[slide.routeId] || slide.routeName || "-"}</td>
             <td>${slide.src}</td>
             <td>
@@ -198,6 +204,66 @@ function fillRouteForm(routeId) {
   byId("r-cover").value = route.cover || "";
   byId("r-highlight").value = route.highlight || "";
   byId("r-photos").value = (route.photos || []).join("\n");
+  renderRoutePhotoList(route);
+}
+
+function getActiveRoute() {
+  return state.routes.find((item) => item.id === activeRouteId) || null;
+}
+
+function syncRoutePhotosTextarea(route) {
+  byId("r-photos").value = (route.photos || []).join("\n");
+}
+
+function renderRoutePhotoList(route) {
+  const container = byId("r-photo-list");
+  if (!container) return;
+
+  if (!route || !Array.isArray(route.photos) || route.photos.length === 0) {
+    container.innerHTML = "<p>当前路线暂无照片。</p>";
+    return;
+  }
+
+  container.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>预览</th>
+          <th>路径</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${route.photos
+          .map(
+            (photo, index) => `
+          <tr>
+            <td><img src="${toAssetSrc(photo)}" alt="route-photo-${index}" /></td>
+            <td>${photo.startsWith("data:") ? "本地上传图片(data)" : photo}</td>
+            <td><button class="btn danger" data-route-photo-action="remove" data-index="${index}">删除</button></td>
+          </tr>
+        `,
+          )
+          .join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function handleRoutePhotoListClick(event) {
+  const target = event.target;
+  if (!(target instanceof HTMLButtonElement)) return;
+  const action = target.getAttribute("data-route-photo-action");
+  const index = Number(target.getAttribute("data-index"));
+  if (action !== "remove" || Number.isNaN(index)) return;
+
+  const route = getActiveRoute();
+  if (!route) return;
+  route.photos.splice(index, 1);
+  syncRoutePhotosTextarea(route);
+  renderRoutePhotoList(route);
+  populateSlidePhotoOptions();
+  refreshOverview();
 }
 
 function saveCurrentRoute() {
@@ -283,7 +349,7 @@ async function getImageSize(src) {
     const img = new Image();
     img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
     img.onerror = () => resolve(null);
-    img.src = encodeURI(src);
+    img.src = toAssetSrc(src);
   });
   imageOrientationCache.set(src, value);
   return value;
@@ -323,8 +389,12 @@ function saveAll() {
   collectSiteForm();
   collectHeroSettings();
   saveCurrentRoute();
-  storage.saveConfig(state);
-  showMessage("save-msg", "已保存全部配置。刷新前台页面即可生效。");
+  try {
+    storage.saveConfig(state);
+    showMessage("save-msg", "已保存全部配置。刷新前台页面即可生效。");
+  } catch (error) {
+    showMessage("save-msg", "保存失败：浏览器存储空间可能不足，请先删除部分本地上传图片。", true);
+  }
 }
 
 function exportConfig() {
@@ -361,6 +431,68 @@ function resetToDefault() {
   state = storage.resetConfig();
   hydrateAll();
   showMessage("save-msg", "已恢复默认配置。");
+}
+
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("read-failed"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImage(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("image-load-failed"));
+    img.src = dataUrl;
+  });
+}
+
+async function compressImageFile(file, maxEdge = 3200, quality = 0.9) {
+  const dataUrl = await readFileAsDataURL(file);
+  const img = await loadImage(dataUrl);
+
+  const ratio = Math.min(1, maxEdge / Math.max(img.naturalWidth, img.naturalHeight));
+  const targetW = Math.max(1, Math.round(img.naturalWidth * ratio));
+  const targetH = Math.max(1, Math.round(img.naturalHeight * ratio));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = targetW;
+  canvas.height = targetH;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return dataUrl;
+  ctx.drawImage(img, 0, 0, targetW, targetH);
+  return canvas.toDataURL("image/jpeg", quality);
+}
+
+async function uploadPhotosToCurrentRoute() {
+  const route = getActiveRoute();
+  const input = byId("r-upload-files");
+  if (!route || !input || !input.files || input.files.length === 0) {
+    showMessage("save-msg", "请先选择要上传的图片。", true);
+    return;
+  }
+
+  const files = Array.from(input.files);
+  let successCount = 0;
+  for (const file of files) {
+    try {
+      const compressed = await compressImageFile(file, 3200, 0.9);
+      route.photos.push(compressed);
+      successCount += 1;
+    } catch (error) {
+      // Skip broken file
+    }
+  }
+  syncRoutePhotosTextarea(route);
+  renderRoutePhotoList(route);
+  populateSlidePhotoOptions();
+  refreshOverview();
+  input.value = "";
+  showMessage("save-msg", `已上传 ${successCount} 张到当前路线（请记得点“保存全部配置”）。`);
 }
 
 function changePasscode() {
@@ -400,6 +532,8 @@ function bindEvents() {
   byId("save-route-btn").addEventListener("click", saveCurrentRoute);
   byId("new-route-btn").addEventListener("click", createRoute);
   byId("delete-route-btn").addEventListener("click", deleteRoute);
+  byId("r-upload-btn").addEventListener("click", uploadPhotosToCurrentRoute);
+  byId("r-photo-list").addEventListener("click", handleRoutePhotoListClick);
 
   byId("build-20-landscape").addEventListener("click", async () => {
     await buildLandscapeSlides(20);
@@ -425,6 +559,7 @@ function setupLogin() {
       return;
     }
     byId("admin-panel").classList.remove("hidden");
+    byId("login-card").classList.add("hidden");
     byId("login-msg").textContent = "";
     hydrateAll();
   });
