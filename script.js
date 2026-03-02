@@ -174,17 +174,14 @@ function startHeroSlideshow() {
   const heroRouteLabel = document.getElementById("hero-route-label");
   if (!hero || heroSlides.length === 0) return;
 
-  const pickNextRandomIndex = () => {
-    if (heroSlides.length < 2) return 0;
-    let next = heroSlideIndex;
-    while (next === heroSlideIndex) {
-      next = Math.floor(Math.random() * heroSlides.length);
-    }
-    return next;
-  };
+  const shuffledSlides = [...heroSlides];
+  for (let i = shuffledSlides.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffledSlides[i], shuffledSlides[j]] = [shuffledSlides[j], shuffledSlides[i]];
+  }
 
   const showSlide = (index, immediate = false) => {
-    const slide = heroSlides[index];
+    const slide = shuffledSlides[index];
     if (!slide) return;
     hero.style.opacity = immediate ? "1" : "0.38";
     if (heroRouteLabel) {
@@ -201,11 +198,11 @@ function startHeroSlideshow() {
     }, immediate ? 0 : 450);
   };
 
-  heroSlideIndex = Math.floor(Math.random() * heroSlides.length);
+  heroSlideIndex = 0;
   showSlide(heroSlideIndex, true);
   if (heroSlideTimer) window.clearInterval(heroSlideTimer);
   heroSlideTimer = window.setInterval(() => {
-    heroSlideIndex = pickNextRandomIndex();
+    heroSlideIndex = (heroSlideIndex + 1) % shuffledSlides.length;
     showSlide(heroSlideIndex);
   }, 7000);
 }
