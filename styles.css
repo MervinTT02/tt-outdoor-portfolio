@@ -432,6 +432,9 @@ h2 {
   width: min(92vw, 1180px);
   height: min(83vh, 880px);
   object-fit: contain;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 #lightbox-caption {
@@ -510,8 +513,18 @@ h2 {
 }
 
 @media (max-width: 760px) {
+  main {
+    width: calc(100% - 1rem);
+    margin-top: 0.9rem;
+  }
+
   .topbar {
+    width: calc(100% - 1rem);
     margin-top: 0.8rem;
+    padding: 0.62rem 0.78rem;
+    border-radius: 20px;
+    flex-wrap: wrap;
+    gap: 0.5rem;
   }
 
   .brand-text {
@@ -519,7 +532,9 @@ h2 {
   }
 
   .nav {
-    gap: 0.6rem;
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.45rem;
   }
 
   .nav a {
@@ -528,6 +543,20 @@ h2 {
 
   h1 {
     font-size: clamp(1.45rem, 7vw, 2rem);
+    white-space: normal;
+    max-width: 12ch;
+  }
+
+  .hero-copy {
+    padding: 1.2rem 1rem;
+  }
+
+  .hero-desc {
+    max-width: 100%;
+  }
+
+  .section {
+    padding: 1rem;
   }
 
   .stat-row {
@@ -542,8 +571,37 @@ h2 {
     column-width: var(--gallery-mobile-column-width);
   }
 
+  .filter-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.22rem;
+    scrollbar-width: none;
+  }
+
+  .filter-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .filter-btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
   .lightbox-nav {
     display: none;
+  }
+
+  .lightbox-close {
+    top: 0.85rem;
+    right: 0.85rem;
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .lightbox img {
+    width: min(96vw, 1180px);
+    height: min(76vh, 880px);
   }
 
   #lightbox-caption {

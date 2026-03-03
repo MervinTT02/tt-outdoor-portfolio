@@ -11,6 +11,11 @@ let cloudflareImagePolicy = null;
 let activeFilter = "all";
 let visiblePhotos = [];
 let lightboxIndex = 0;
+let lightboxTouchStartX = 0;
+let lightboxTouchStartY = 0;
+let lightboxTouchDeltaX = 0;
+let lightboxTouchDeltaY = 0;
+let lightboxTouchTracking = false;
 
 let heroSlideIndex = 0;
 let heroSlideTimer = null;
@@ -463,6 +468,7 @@ function bindLightboxEvents() {
   const prevBtn = document.getElementById("lightbox-prev");
   const nextBtn = document.getElementById("lightbox-next");
   const lightbox = document.getElementById("lightbox");
+  const lightboxImage = document.getElementById("lightbox-image");
 
   if (closeBtn) closeBtn.addEventListener("click", closeLightbox);
   if (prevBtn) prevBtn.addEventListener("click", showPrev);
@@ -471,6 +477,61 @@ function bindLightboxEvents() {
   if (lightbox) {
     lightbox.addEventListener("click", (event) => {
       if (event.target.id === "lightbox") closeLightbox();
+    });
+  }
+
+  if (lightboxImage) {
+    lightboxImage.addEventListener(
+      "touchstart",
+      (event) => {
+        if (!lightbox || !lightbox.classList.contains("open")) return;
+        if (event.touches.length !== 1) {
+          lightboxTouchTracking = false;
+          return;
+        }
+        const touch = event.touches[0];
+        lightboxTouchStartX = touch.clientX;
+        lightboxTouchStartY = touch.clientY;
+        lightboxTouchDeltaX = 0;
+        lightboxTouchDeltaY = 0;
+        lightboxTouchTracking = true;
+      },
+      { passive: true },
+    );
+
+    lightboxImage.addEventListener(
+      "touchmove",
+      (event) => {
+        if (!lightboxTouchTracking || event.touches.length !== 1) return;
+        const touch = event.touches[0];
+        lightboxTouchDeltaX = touch.clientX - lightboxTouchStartX;
+        lightboxTouchDeltaY = touch.clientY - lightboxTouchStartY;
+        if (Math.abs(lightboxTouchDeltaX) > Math.abs(lightboxTouchDeltaY)) {
+          event.preventDefault();
+        }
+      },
+      { passive: false },
+    );
+
+    lightboxImage.addEventListener("touchend", () => {
+      if (!lightboxTouchTracking) return;
+      lightboxTouchTracking = false;
+
+      if (visiblePhotos.length < 2) return;
+      const absX = Math.abs(lightboxTouchDeltaX);
+      const absY = Math.abs(lightboxTouchDeltaY);
+      const isHorizontalSwipe = absX >= 44 && absX > absY * 1.25;
+      if (!isHorizontalSwipe) return;
+
+      if (lightboxTouchDeltaX > 0) {
+        showPrev();
+      } else {
+        showNext();
+      }
+    });
+
+    lightboxImage.addEventListener("touchcancel", () => {
+      lightboxTouchTracking = false;
     });
   }
 
