@@ -1,29 +1,40 @@
 const storage = window.TTStorage;
-const config = storage ? storage.getConfig() : window.TT_DEFAULT_CONFIG;
-
-const site = config.site || {};
-const heroConfig = config.hero || {};
-const galleryConfig = config.gallery || {};
-const routes = Array.isArray(config.routes) ? config.routes : [];
-
-const routeNameById = Object.fromEntries(routes.map((route) => [route.id, route.name]));
-
-const allPhotos = routes.flatMap((route) =>
-  (route.photos || []).map((src, index) => ({
-    routeId: route.id,
-    routeName: route.name,
-    src,
-    index: index + 1,
-  })),
-);
+let config = window.TT_DEFAULT_CONFIG;
+let site = {};
+let heroConfig = {};
+let galleryConfig = {};
+let routes = [];
+let routeNameById = {};
+let allPhotos = [];
 
 let activeFilter = "all";
-let visiblePhotos = allPhotos;
+let visiblePhotos = [];
 let lightboxIndex = 0;
 
 let heroSlideIndex = 0;
 let heroSlideTimer = null;
 let heroPlaybackOrder = [];
+
+function applyConfig(nextConfig) {
+  config = nextConfig && typeof nextConfig === "object" ? nextConfig : window.TT_DEFAULT_CONFIG;
+  site = config.site || {};
+  heroConfig = config.hero || {};
+  galleryConfig = config.gallery || {};
+  routes = Array.isArray(config.routes) ? config.routes : [];
+
+  routeNameById = Object.fromEntries(routes.map((route) => [route.id, route.name]));
+  allPhotos = routes.flatMap((route) =>
+    (route.photos || []).map((src, index) => ({
+      routeId: route.id,
+      routeName: route.name,
+      src,
+      index: index + 1,
+    })),
+  );
+
+  activeFilter = "all";
+  visiblePhotos = allPhotos;
+}
 
 function assetPath(path) {
   if (typeof path === "string" && path.startsWith("data:")) {
@@ -370,7 +381,18 @@ function initReveal() {
   targets.forEach((target) => observer.observe(target));
 }
 
-function init() {
+async function loadRuntimeConfig() {
+  if (!storage) return window.TT_DEFAULT_CONFIG;
+  if (typeof storage.getRuntimeConfig === "function") {
+    return storage.getRuntimeConfig({ preferRemote: true, includeLocal: false });
+  }
+  return storage.getConfig();
+}
+
+async function init() {
+  const runtimeConfig = await loadRuntimeConfig();
+  applyConfig(runtimeConfig);
+
   applySiteCopy();
   applyGallerySettings();
   setStats();
@@ -382,4 +404,6 @@ function init() {
   initReveal();
 }
 
-document.addEventListener("DOMContentLoaded", init);
+document.addEventListener("DOMContentLoaded", () => {
+  init();
+});

@@ -1,5 +1,6 @@
 (function () {
   const STORAGE_KEY = "tt_site_config_v1";
+  const REMOTE_CONFIG_PATH = "./site-config.json";
   const REMOVED_ASSETS = new Set([
     "./个人摄影集/梅里北坡/DSC01224.jpg",
     "./个人摄影集/梅里北坡/DSC01234.jpg",
@@ -236,10 +237,48 @@
     return deepClone(DEFAULT_CONFIG);
   }
 
+  function encodePath(path) {
+    return String(path || "")
+      .split("/")
+      .map((segment) => encodeURIComponent(segment))
+      .join("/");
+  }
+
+  async function getRemoteConfig(path = REMOTE_CONFIG_PATH) {
+    try {
+      const cacheBusting = `v=${Date.now()}`;
+      const normalizedPath = String(path || REMOTE_CONFIG_PATH).trim();
+      const delimiter = normalizedPath.includes("?") ? "&" : "?";
+      const response = await fetch(
+        `${encodePath(normalizedPath).replace(/%2F/g, "/")}${delimiter}${cacheBusting}`,
+        { cache: "no-store" },
+      );
+      if (!response.ok) return null;
+      const parsed = await response.json();
+      const merged = mergeDefaults(deepClone(DEFAULT_CONFIG), parsed);
+      return sanitizeConfig(merged);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  async function getRuntimeConfig(options = {}) {
+    const preferRemote = options.preferRemote !== false;
+    const includeLocal = options.includeLocal !== false;
+    const localConfig = includeLocal ? getConfig() : sanitizeConfig(deepClone(DEFAULT_CONFIG));
+    if (!preferRemote) return localConfig;
+    const remoteConfig = await getRemoteConfig(options.remotePath || REMOTE_CONFIG_PATH);
+    if (!remoteConfig) return localConfig;
+    return sanitizeConfig(mergeDefaults(localConfig, remoteConfig));
+  }
+
   window.TT_DEFAULT_CONFIG = deepClone(DEFAULT_CONFIG);
   window.TTStorage = {
     STORAGE_KEY,
+    REMOTE_CONFIG_PATH,
     getConfig,
+    getRemoteConfig,
+    getRuntimeConfig,
     saveConfig,
     resetConfig,
     deepClone,
