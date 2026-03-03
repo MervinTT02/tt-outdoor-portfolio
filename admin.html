@@ -73,6 +73,35 @@
             <input id="f-show-route-label" type="checkbox" />
             显示轮播图路线标签
           </label>
+          <h3>Cloudflare 图片优化（前台）</h3>
+          <label class="checkbox">
+            <input id="f-cf-responsive" type="checkbox" />
+            启用 Cloudflare 响应式加载（需已开通 Flexible Variants）
+          </label>
+          <div class="grid three">
+            <label>
+              图像质量(60-95)
+              <input id="f-cf-quality" type="number" min="60" max="95" step="1" />
+            </label>
+            <label>
+              锐化强度(0-3)
+              <input id="f-cf-sharpen" type="number" min="0" max="3" step="0.1" />
+            </label>
+            <label>
+              轮播最大宽(px)
+              <input id="f-cf-hero-maxw" type="number" min="800" max="3840" step="10" />
+            </label>
+          </div>
+          <div class="grid two">
+            <label>
+              作品流最大宽(px)
+              <input id="f-cf-gallery-maxw" type="number" min="600" max="3200" step="10" />
+            </label>
+            <label>
+              大图预览最大宽(px)
+              <input id="f-cf-lightbox-maxw" type="number" min="900" max="4200" step="10" />
+            </label>
+          </div>
           <div class="row">
             <button id="build-20-landscape" class="btn">智能生成 20 张横构图轮播</button>
           </div>
@@ -177,7 +206,7 @@
       </section>
     </main>
 
-    <script src="./site-data.js?v=20260303-0200"></script>
-    <script src="./admin.js?v=20260303-0200"></script>
+    <script src="./site-data.js?v=20260303-0300"></script>
+    <script src="./admin.js?v=20260303-0300"></script>
   </body>
 </html>

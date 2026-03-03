@@ -6,6 +6,7 @@ let galleryConfig = {};
 let routes = [];
 let routeNameById = {};
 let allPhotos = [];
+let cloudflareImagePolicy = null;
 
 let activeFilter = "all";
 let visiblePhotos = [];
@@ -34,6 +35,7 @@ function applyConfig(nextConfig) {
 
   activeFilter = "all";
   visiblePhotos = allPhotos;
+  cloudflareImagePolicy = getCloudflareImagePolicy();
 }
 
 function assetPath(path) {
@@ -47,6 +49,112 @@ function clampNumber(value, min, max, fallback) {
   const parsed = Number(value);
   if (Number.isNaN(parsed)) return fallback;
   return Math.min(max, Math.max(min, parsed));
+}
+
+function isCloudflareImageUrl(path) {
+  try {
+    const url = new URL(String(path || ""), window.location.href);
+    return url.hostname.includes("imagedelivery.net");
+  } catch (error) {
+    return false;
+  }
+}
+
+function getCloudflareImagePolicy() {
+  const enabled = galleryConfig.cloudflareResponsive === true;
+  return {
+    enabled,
+    quality: clampNumber(galleryConfig.cloudflareQuality, 60, 95, 88),
+    sharpen: clampNumber(galleryConfig.cloudflareSharpen, 0, 3, 1),
+    heroMaxW: clampNumber(galleryConfig.cloudflareHeroMaxWidth, 800, 3840, 1920),
+    galleryMaxW: clampNumber(galleryConfig.cloudflareGalleryMaxWidth, 600, 3200, 1400),
+    lightboxMaxW: clampNumber(galleryConfig.cloudflareLightboxMaxWidth, 900, 4200, 2600),
+  };
+}
+
+function buildCloudflareTransformedUrl(src, width, quality, sharpen) {
+  try {
+    const original = new URL(assetPath(src), window.location.href);
+    const segments = original.pathname.split("/").filter(Boolean);
+    if (segments.length < 3) return "";
+
+    const accountHash = segments[0];
+    const imageId = segments[1];
+    const options = `width=${Math.round(width)},quality=${Math.round(
+      quality,
+    )},format=auto,fit=scale-down,sharpen=${Math.max(0, sharpen).toFixed(1)}`;
+    const transformed = `${original.origin}/${accountHash}/${imageId}/${options}`;
+    return `${transformed}${original.search}`;
+  } catch (error) {
+    return "";
+  }
+}
+
+function applyCloudflareResponsiveImage(img, src, context = "gallery") {
+  const policy = cloudflareImagePolicy || getCloudflareImagePolicy();
+  const rawSrc = assetPath(src);
+  if (!policy.enabled || !isCloudflareImageUrl(rawSrc)) {
+    img.src = rawSrc;
+    img.srcset = "";
+    img.sizes = "";
+    return;
+  }
+
+  const maxW =
+    context === "hero"
+      ? policy.heroMaxW
+      : context === "lightbox"
+        ? policy.lightboxMaxW
+        : policy.galleryMaxW;
+
+  const candidates =
+    context === "hero"
+      ? [960, 1280, 1600, 1920, 2400, 2880]
+      : context === "lightbox"
+        ? [1080, 1440, 1920, 2400, 3200, 3840]
+        : [420, 640, 900, 1200, 1600, 2000];
+  const widths = candidates.filter((w) => w <= maxW);
+  if (!widths.includes(maxW)) widths.push(maxW);
+
+  const srcset = widths
+    .map((w) => {
+      const url = buildCloudflareTransformedUrl(rawSrc, w, policy.quality, policy.sharpen);
+      return url ? `${url} ${w}w` : "";
+    })
+    .filter(Boolean)
+    .join(", ");
+
+  if (!srcset) {
+    img.src = rawSrc;
+    img.srcset = "";
+    img.sizes = "";
+    return;
+  }
+
+  const sizes =
+    context === "hero"
+      ? "(min-width: 1080px) 48vw, 96vw"
+      : context === "lightbox"
+        ? "94vw"
+        : "(min-width: 1200px) 29vw, (min-width: 760px) 46vw, 92vw";
+  const best = buildCloudflareTransformedUrl(rawSrc, maxW, policy.quality, policy.sharpen);
+
+  img.dataset.cfResponsive = "1";
+  img.dataset.cfOriginal = rawSrc;
+  if (!img.dataset.cfFallbackBound) {
+    img.addEventListener("error", () => {
+      if (img.dataset.cfResponsive !== "1") return;
+      img.dataset.cfResponsive = "0";
+      img.srcset = "";
+      img.sizes = "";
+      img.src = img.dataset.cfOriginal || "";
+    });
+    img.dataset.cfFallbackBound = "1";
+  }
+
+  img.srcset = srcset;
+  img.sizes = sizes;
+  img.src = best || rawSrc;
 }
 
 function normalizeSlides(slides) {
@@ -194,7 +302,7 @@ function startHeroSlideshow() {
 
     window.setTimeout(() => {
       const routeName = getSlideRouteName(slide);
-      hero.src = assetPath(slide.src);
+      applyCloudflareResponsiveImage(hero, slide.src, "hero");
       hero.alt = `${routeName} 主视觉`;
       if (heroRouteLabel && showRouteLabel) {
         heroRouteLabel.textContent = routeName;
@@ -231,7 +339,7 @@ function renderRoutes() {
     const cover = route.cover || (route.photos && route.photos[0]) || "";
 
     card.innerHTML = `
-      <img src="${assetPath(cover)}" alt="${route.name} 封面" loading="lazy" />
+      <img alt="${route.name} 封面" loading="lazy" decoding="async" />
       <div class="route-body">
         <h3 class="route-name">${route.name}</h3>
         <p class="route-meta">${route.location || ""}</p>
@@ -240,6 +348,10 @@ function renderRoutes() {
         <button class="route-action" data-route-id="${route.id}">查看该路线作品（${(route.photos || []).length}）</button>
       </div>
     `;
+    const routeImg = card.querySelector("img");
+    if (routeImg) {
+      applyCloudflareResponsiveImage(routeImg, cover, "gallery");
+    }
     routeGrid.appendChild(card);
   });
 
@@ -294,7 +406,12 @@ function renderGallery() {
   visiblePhotos.forEach((photo, index) => {
     const card = document.createElement("article");
     card.className = "photo-card";
-    card.innerHTML = `<img src="${assetPath(photo.src)}" alt="${photo.routeName} 第 ${photo.index} 张" loading="lazy" decoding="async" />`;
+    const img = document.createElement("img");
+    img.alt = `${photo.routeName} 第 ${photo.index} 张`;
+    img.loading = "lazy";
+    img.decoding = "async";
+    applyCloudflareResponsiveImage(img, photo.src, "gallery");
+    card.appendChild(img);
     card.addEventListener("click", () => openLightbox(index));
     gallery.appendChild(card);
   });
@@ -325,7 +442,7 @@ function renderLightbox() {
   const caption = document.getElementById("lightbox-caption");
   if (!image || !caption) return;
 
-  image.src = assetPath(current.src);
+  applyCloudflareResponsiveImage(image, current.src, "lightbox");
   image.alt = `${current.routeName} 大图预览`;
   caption.textContent = current.routeName;
 }

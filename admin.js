@@ -293,17 +293,43 @@ function applySiteForm() {
 }
 
 function collectHeroSettings() {
+  state.gallery = state.gallery || {};
   state.hero.intervalMs = Number(byId("f-hero-interval").value) * 1000;
   state.hero.transitionMs = Number(byId("f-hero-transition").value);
   state.hero.playMode = byId("f-hero-play-mode").value;
   state.hero.showRouteLabel = byId("f-show-route-label").checked;
+
+  state.gallery.cloudflareResponsive = byId("f-cf-responsive").checked;
+  state.gallery.cloudflareQuality = Number(byId("f-cf-quality").value);
+  state.gallery.cloudflareSharpen = Number(byId("f-cf-sharpen").value);
+  state.gallery.cloudflareHeroMaxWidth = Number(byId("f-cf-hero-maxw").value);
+  state.gallery.cloudflareGalleryMaxWidth = Number(byId("f-cf-gallery-maxw").value);
+  state.gallery.cloudflareLightboxMaxWidth = Number(byId("f-cf-lightbox-maxw").value);
 }
 
 function applyHeroSettings() {
+  state.gallery = state.gallery || {};
   byId("f-hero-interval").value = Math.round((state.hero.intervalMs || 7000) / 1000);
   byId("f-hero-transition").value = state.hero.transitionMs || 1150;
   byId("f-hero-play-mode").value = state.hero.playMode || "shuffle-once";
   byId("f-show-route-label").checked = state.hero.showRouteLabel !== false;
+
+  byId("f-cf-responsive").checked = state.gallery.cloudflareResponsive === true;
+  byId("f-cf-quality").value = Number.isFinite(state.gallery.cloudflareQuality)
+    ? state.gallery.cloudflareQuality
+    : 88;
+  byId("f-cf-sharpen").value = Number.isFinite(state.gallery.cloudflareSharpen)
+    ? state.gallery.cloudflareSharpen
+    : 1;
+  byId("f-cf-hero-maxw").value = Number.isFinite(state.gallery.cloudflareHeroMaxWidth)
+    ? state.gallery.cloudflareHeroMaxWidth
+    : 1920;
+  byId("f-cf-gallery-maxw").value = Number.isFinite(state.gallery.cloudflareGalleryMaxWidth)
+    ? state.gallery.cloudflareGalleryMaxWidth
+    : 1400;
+  byId("f-cf-lightbox-maxw").value = Number.isFinite(state.gallery.cloudflareLightboxMaxWidth)
+    ? state.gallery.cloudflareLightboxMaxWidth
+    : 2600;
 }
 
 function refreshOverview() {

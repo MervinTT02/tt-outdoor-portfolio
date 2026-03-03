@@ -66,6 +66,12 @@
       desktopColumnWidth: 320,
       mobileColumnWidth: 190,
       columnGap: 14,
+      cloudflareResponsive: false,
+      cloudflareQuality: 88,
+      cloudflareSharpen: 1,
+      cloudflareHeroMaxWidth: 1920,
+      cloudflareGalleryMaxWidth: 1400,
+      cloudflareLightboxMaxWidth: 2600,
     },
     routes: [
       {
