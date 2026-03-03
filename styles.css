@@ -438,30 +438,7 @@ h2 {
 }
 
 #lightbox-image {
-  transform: scale(1);
-  opacity: 1;
-  transition: transform 0.22s ease, opacity 0.22s ease;
-}
-
-#lightbox-image.is-switching {
-  transform: scale(0.9);
-  opacity: 0.34;
-}
-
-#lightbox-image.is-entering {
-  animation: lightbox-image-pop 0.26s cubic-bezier(0.2, 0.72, 0.24, 1);
-}
-
-@keyframes lightbox-image-pop {
-  0% {
-    transform: scale(0.9);
-    opacity: 0.34;
-  }
-
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+  will-change: transform, opacity, filter;
 }
 
 #lightbox-caption {

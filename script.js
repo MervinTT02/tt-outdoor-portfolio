@@ -16,8 +16,9 @@ let lightboxTouchStartY = 0;
 let lightboxTouchDeltaX = 0;
 let lightboxTouchDeltaY = 0;
 let lightboxTouchTracking = false;
-let lightboxSwitchTimer = null;
-let lightboxEnterTimer = null;
+let lightboxTransitionToken = 0;
+let lightboxOutAnimation = null;
+let lightboxInAnimation = null;
 
 let heroSlideIndex = 0;
 let heroSlideTimer = null;
@@ -441,22 +442,33 @@ function closeLightbox() {
   lightbox.setAttribute("aria-hidden", "true");
   document.body.style.overflow = "";
 
-  if (lightboxSwitchTimer) {
-    window.clearTimeout(lightboxSwitchTimer);
-    lightboxSwitchTimer = null;
-  }
-  if (lightboxEnterTimer) {
-    window.clearTimeout(lightboxEnterTimer);
-    lightboxEnterTimer = null;
-  }
-
   const image = document.getElementById("lightbox-image");
   if (image) {
-    image.classList.remove("is-switching", "is-entering");
+    stopLightboxAnimations(image);
+    image.style.opacity = "";
+    image.style.transform = "";
+    image.style.filter = "";
   }
 }
 
-function renderLightbox(withTransition = false) {
+function stopLightboxAnimations(image) {
+  lightboxTransitionToken += 1;
+  if (lightboxOutAnimation) {
+    lightboxOutAnimation.cancel();
+    lightboxOutAnimation = null;
+  }
+  if (lightboxInAnimation) {
+    lightboxInAnimation.cancel();
+    lightboxInAnimation = null;
+  }
+  if (image) {
+    image.style.opacity = "";
+    image.style.transform = "";
+    image.style.filter = "";
+  }
+}
+
+function renderLightbox(withTransition = false, direction = 1) {
   const image = document.getElementById("lightbox-image");
   const caption = document.getElementById("lightbox-caption");
   if (!image || !caption) return;
@@ -470,45 +482,85 @@ function renderLightbox(withTransition = false) {
     caption.textContent = current.routeName;
   };
 
-  if (lightboxSwitchTimer) {
-    window.clearTimeout(lightboxSwitchTimer);
-    lightboxSwitchTimer = null;
-  }
-  if (lightboxEnterTimer) {
-    window.clearTimeout(lightboxEnterTimer);
-    lightboxEnterTimer = null;
-  }
-
   if (!withTransition) {
-    image.classList.remove("is-switching", "is-entering");
+    stopLightboxAnimations(image);
     applyCurrentPhoto();
     return;
   }
 
-  image.classList.remove("is-entering");
-  image.classList.add("is-switching");
-  lightboxSwitchTimer = window.setTimeout(() => {
+  stopLightboxAnimations(image);
+  if (typeof image.animate !== "function") {
     applyCurrentPhoto();
-    image.classList.remove("is-switching");
-    image.classList.add("is-entering");
+    return;
+  }
 
-    lightboxEnterTimer = window.setTimeout(() => {
-      image.classList.remove("is-entering");
-      lightboxEnterTimer = null;
-    }, 260);
-    lightboxSwitchTimer = null;
-  }, 120);
+  const token = lightboxTransitionToken;
+  const offsetX = Math.max(-24, Math.min(24, direction * 18));
+
+  lightboxOutAnimation = image.animate(
+    [
+      { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)", filter: "blur(0px)" },
+      {
+        opacity: 0.1,
+        transform: `translate3d(${offsetX}px, 0, 0) scale(0.975)`,
+        filter: "blur(4px)",
+      },
+    ],
+    {
+      duration: 210,
+      easing: "cubic-bezier(0.33, 1, 0.68, 1)",
+      fill: "forwards",
+    },
+  );
+
+  lightboxOutAnimation.onfinish = () => {
+    lightboxOutAnimation = null;
+    if (token !== lightboxTransitionToken) return;
+
+    applyCurrentPhoto();
+    lightboxInAnimation = image.animate(
+      [
+        {
+          opacity: 0.12,
+          transform: `translate3d(${-offsetX}px, 0, 0) scale(1.025)`,
+          filter: "blur(5px)",
+        },
+        { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)", filter: "blur(0px)" },
+      ],
+      {
+        duration: 320,
+        easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+        fill: "forwards",
+      },
+    );
+
+    lightboxInAnimation.onfinish = () => {
+      lightboxInAnimation = null;
+      if (token !== lightboxTransitionToken) return;
+      image.style.opacity = "";
+      image.style.transform = "";
+      image.style.filter = "";
+    };
+
+    lightboxInAnimation.oncancel = () => {
+      lightboxInAnimation = null;
+    };
+  };
+
+  lightboxOutAnimation.oncancel = () => {
+    lightboxOutAnimation = null;
+  };
 }
 
 function showPrev() {
   lightboxIndex =
     (lightboxIndex - 1 + visiblePhotos.length) % visiblePhotos.length;
-  renderLightbox(true);
+  renderLightbox(true, -1);
 }
 
 function showNext() {
   lightboxIndex = (lightboxIndex + 1) % visiblePhotos.length;
-  renderLightbox(true);
+  renderLightbox(true, 1);
 }
 
 function bindLightboxEvents() {
