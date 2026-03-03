@@ -1268,6 +1268,7 @@ function setupLogin() {
   const openAdminPanel = async () => {
     await refreshStateFromRuntime();
     publishSettings = loadPublishSettings();
+    uploadSettings = loadUploadSettings();
     byId("admin-panel").classList.remove("hidden");
     byId("login-card").classList.add("hidden");
     byId("login-msg").textContent = "";
