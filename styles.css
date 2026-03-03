@@ -617,17 +617,13 @@ h2 {
 
 @media (max-width: 760px) and (orientation: portrait) {
   .gallery-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--gallery-gap);
-    row-gap: var(--gallery-gap);
+    display: block;
+    column-width: var(--gallery-mobile-column-width);
     column-gap: var(--gallery-gap);
-    align-items: start;
-    column-width: auto;
   }
 
   .photo-card {
-    margin: 0;
-    align-self: start;
+    margin: 0 0 var(--gallery-gap);
+    align-self: auto;
   }
 }
