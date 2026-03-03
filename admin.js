@@ -3,7 +3,9 @@ const PASSCODE_KEY = "tt_admin_passcode";
 const DEFAULT_PASSCODE = "ttadmin";
 const ADMIN_AUTH_KEY = "tt_admin_logged_in_v1";
 const PUBLISH_SETTINGS_KEY = "tt_publish_settings_v1";
+const UPLOAD_SETTINGS_KEY = "tt_upload_settings_v1";
 const REPO_UPLOAD_PREFIX = "个人摄影集/后台上传/";
+const CLOUDFLARE_IMAGES_HOST = "imagedelivery.net";
 const DEFAULT_PUBLISH_SETTINGS = {
   owner: "MervinTT02",
   repo: "tt-outdoor-portfolio",
@@ -11,11 +13,17 @@ const DEFAULT_PUBLISH_SETTINGS = {
   token: "",
   commitMessage: "chore: update site config from admin panel",
 };
+const DEFAULT_UPLOAD_SETTINGS = {
+  provider: "github",
+  cloudflareAccountId: "",
+  cloudflareImagesToken: "",
+};
 
 let state = storage.getConfig();
 let activeRouteId = state.routes[0] ? state.routes[0].id : "";
 const imageOrientationCache = new Map();
 let publishSettings = loadPublishSettings();
+let uploadSettings = loadUploadSettings();
 
 function byId(id) {
   return document.getElementById(id);
@@ -37,11 +45,23 @@ function isPlaceholderLine(line) {
   return String(line || "").trim().startsWith("[本地上传图片");
 }
 
+function getUrlParam(path, key) {
+  try {
+    const url = new URL(String(path || ""), window.location.origin);
+    return url.searchParams.get(key) || "";
+  } catch (error) {
+    return "";
+  }
+}
+
 function extractFileName(path) {
   const text = String(path || "").trim();
   if (!text) return "";
+  const named = getUrlParam(text, "n");
+  if (named) return named;
   const normalized = text.replace(/\\/g, "/");
-  const segment = normalized.split("/").pop() || normalized;
+  const withoutQuery = normalized.split(/[?#]/)[0];
+  const segment = withoutQuery.split("/").pop() || withoutQuery;
   try {
     return decodeURIComponent(segment);
   } catch (error) {
@@ -96,12 +116,20 @@ function buildUploadAssetPath(route, fileName) {
 }
 
 function normalizeAssetPath(path) {
-  return String(path || "").trim().replace(/^\.\/+/, "");
+  const text = String(path || "").trim();
+  if (!text) return "";
+  const withoutQuery = text.split(/[?#]/)[0];
+  return withoutQuery.replace(/^\.\/+/, "");
 }
 
 function isRepoManagedUploadPhoto(path) {
   if (isDataUrl(path)) return false;
   return normalizeAssetPath(path).startsWith(REPO_UPLOAD_PREFIX);
+}
+
+function isCloudflareManagedUploadPhoto(path) {
+  if (isDataUrl(path)) return false;
+  return Boolean(getUrlParam(path, "cfid"));
 }
 
 function photosToTextareaLines(photos) {
@@ -187,7 +215,27 @@ function persistPublishSettings() {
   localStorage.setItem(PUBLISH_SETTINGS_KEY, JSON.stringify(publishSettings));
 }
 
+function loadUploadSettings() {
+  try {
+    const raw = localStorage.getItem(UPLOAD_SETTINGS_KEY);
+    if (!raw) return deepClone(DEFAULT_UPLOAD_SETTINGS);
+    const parsed = JSON.parse(raw);
+    return { ...deepClone(DEFAULT_UPLOAD_SETTINGS), ...(parsed || {}) };
+  } catch (error) {
+    return deepClone(DEFAULT_UPLOAD_SETTINGS);
+  }
+}
+
+function persistUploadSettings() {
+  localStorage.setItem(UPLOAD_SETTINGS_KEY, JSON.stringify(uploadSettings));
+}
+
 function collectPublishForm() {
+  uploadSettings.provider = byId("upload-provider").value || "github";
+  uploadSettings.cloudflareAccountId = byId("cf-account-id").value.trim();
+  uploadSettings.cloudflareImagesToken = byId("cf-images-token").value.trim();
+  persistUploadSettings();
+
   publishSettings.owner = byId("gh-owner").value.trim();
   publishSettings.repo = byId("gh-repo").value.trim();
   publishSettings.branch = byId("gh-branch").value.trim() || "main";
@@ -198,12 +246,30 @@ function collectPublishForm() {
 }
 
 function applyPublishForm() {
+  byId("upload-provider").value = uploadSettings.provider || "github";
+  byId("cf-account-id").value = uploadSettings.cloudflareAccountId || "";
+  byId("cf-images-token").value = uploadSettings.cloudflareImagesToken || "";
+
   byId("gh-owner").value = publishSettings.owner || "";
   byId("gh-repo").value = publishSettings.repo || "";
   byId("gh-branch").value = publishSettings.branch || "main";
   byId("gh-token").value = publishSettings.token || "";
   byId("gh-commit-message").value =
     publishSettings.commitMessage || DEFAULT_PUBLISH_SETTINGS.commitMessage;
+  updateUploadProviderUI();
+}
+
+function updateUploadProviderUI() {
+  const provider = byId("upload-provider").value || "github";
+  const uploadBtn = byId("r-upload-btn");
+  const cfAccountInput = byId("cf-account-id");
+  const cfTokenInput = byId("cf-images-token");
+  if (uploadBtn) {
+    uploadBtn.textContent =
+      provider === "cloudflare-images" ? "上传到 Cloudflare 并加入当前路线" : "上传到仓库并加入当前路线";
+  }
+  if (cfAccountInput) cfAccountInput.disabled = provider !== "cloudflare-images";
+  if (cfTokenInput) cfTokenInput.disabled = provider !== "cloudflare-images";
 }
 
 function collectSiteForm() {
@@ -433,7 +499,7 @@ async function handleRoutePhotoListClick(event) {
   const photo = route.photos[index];
   if (!photo) return;
 
-  let deletedFromRepo = false;
+  let deletedRemote = "";
   if (isRepoManagedUploadPhoto(photo)) {
     const alsoDeleteRemote = window.confirm(
       "是否同时删除 GitHub 仓库中的原图文件？\n确定：同时删除仓库文件\n取消：仅从当前路线移除",
@@ -449,10 +515,36 @@ async function handleRoutePhotoListClick(event) {
       } else {
         try {
           showMessage("save-msg", `正在删除仓库文件：${extractFileName(photo)}...`);
-          deletedFromRepo = await deleteUploadedPhotoFromGitHub(photo);
+          const deleted = await deleteUploadedPhotoFromGitHub(photo);
+          if (deleted) deletedRemote = "github";
         } catch (error) {
           const removeOnly = window.confirm(
             `仓库文件删除失败：${error.message || "未知错误"}\n是否仅从当前路线移除该图片？`,
+          );
+          if (!removeOnly) return;
+        }
+      }
+    }
+  } else if (isCloudflareManagedUploadPhoto(photo)) {
+    const alsoDeleteRemote = window.confirm(
+      "是否同时删除 Cloudflare Images 中的原图文件？\n确定：同时删除云端文件\n取消：仅从当前路线移除",
+    );
+    if (alsoDeleteRemote) {
+      const refs = countAssetReferences(photo);
+      if (refs > 1) {
+        showMessage(
+          "save-msg",
+          "该图片仍被其他路线/轮播/封面引用，已仅从当前路线移除，未删除 Cloudflare Images 文件。",
+          true,
+        );
+      } else {
+        try {
+          showMessage("save-msg", `正在删除 Cloudflare 图片：${extractFileName(photo)}...`);
+          const deleted = await deleteUploadedPhotoFromCloudflare(photo);
+          if (deleted) deletedRemote = "cloudflare";
+        } catch (error) {
+          const removeOnly = window.confirm(
+            `Cloudflare 图片删除失败：${error.message || "未知错误"}\n是否仅从当前路线移除该图片？`,
           );
           if (!removeOnly) return;
         }
@@ -465,8 +557,10 @@ async function handleRoutePhotoListClick(event) {
   renderRoutePhotoList(route);
   populateSlidePhotoOptions();
   refreshOverview();
-  if (deletedFromRepo) {
+  if (deletedRemote === "github") {
     showMessage("save-msg", "已从当前路线移除，并删除仓库中的原图文件。");
+  } else if (deletedRemote === "cloudflare") {
+    showMessage("save-msg", "已从当前路线移除，并删除 Cloudflare Images 中的原图文件。");
   }
 }
 
@@ -648,6 +742,46 @@ function validateGitHubPublishSettings() {
   }
 }
 
+function cloudflareHeaders(token) {
+  return {
+    Authorization: `Bearer ${token}`,
+  };
+}
+
+function validateCloudflareUploadSettings() {
+  collectPublishForm();
+  if (!uploadSettings.cloudflareAccountId) {
+    throw new Error("请先填写 Cloudflare Account ID。");
+  }
+  if (!uploadSettings.cloudflareImagesToken) {
+    throw new Error("请先填写 Cloudflare Images API Token。");
+  }
+}
+
+function getCloudflareImageId(photoPath) {
+  const fromQuery = getUrlParam(photoPath, "cfid");
+  if (fromQuery) return fromQuery;
+
+  try {
+    const text = String(photoPath || "").trim();
+    const url = new URL(text, window.location.origin);
+    const parts = url.pathname.split("/").filter(Boolean);
+    if (url.hostname.includes(CLOUDFLARE_IMAGES_HOST) && parts.length >= 3) {
+      return parts[1] || "";
+    }
+  } catch (error) {
+    return "";
+  }
+  return "";
+}
+
+function buildCloudflarePhotoUrl(variantUrl, fileName, imageId) {
+  const separator = variantUrl.includes("?") ? "&" : "?";
+  return `${variantUrl}${separator}n=${encodeURIComponent(extractFileName(fileName))}&cfid=${encodeURIComponent(
+    imageId,
+  )}`;
+}
+
 async function putRepoFile({ owner, repo, branch, token, path, base64Content, message, sha = "" }) {
   const payload = {
     message,
@@ -816,7 +950,7 @@ function loadImageFromUrl(url) {
   });
 }
 
-async function compressImageFileToBase64(file, maxEdge = 4096, quality = 0.92) {
+async function compressImageFileToBlob(file, maxEdge = 4096, quality = 0.92) {
   const objectUrl = URL.createObjectURL(file);
   let img;
   try {
@@ -844,9 +978,15 @@ async function compressImageFileToBase64(file, maxEdge = 4096, quality = 0.92) {
     const fallback = canvas.toDataURL("image/jpeg", quality);
     const commaIndex = fallback.indexOf(",");
     if (commaIndex === -1) throw new Error("encode-failed");
-    return fallback.slice(commaIndex + 1);
+    const fallbackBase64 = fallback.slice(commaIndex + 1);
+    const fallbackBinary = Uint8Array.from(atob(fallbackBase64), (char) => char.charCodeAt(0));
+    return new Blob([fallbackBinary], { type: "image/jpeg" });
   }
+  return blob;
+}
 
+async function compressImageFileToBase64(file, maxEdge = 4096, quality = 0.92) {
+  const blob = await compressImageFileToBlob(file, maxEdge, quality);
   const bytes = new Uint8Array(await blob.arrayBuffer());
   return encodeBinaryBase64(bytes);
 }
@@ -865,6 +1005,50 @@ async function uploadRoutePhotoToGitHub(route, file) {
     message: `chore: upload photo ${extractFileName(file.name)} for ${route.name || route.id}`,
   });
   return `./${uploadPath}`;
+}
+
+async function uploadRoutePhotoToCloudflareImages(route, file) {
+  validateCloudflareUploadSettings();
+  const blob = await compressImageFileToBlob(file, 4096, 0.92);
+
+  const form = new FormData();
+  form.append("file", blob, `${normalizeUploadBaseName(file.name)}.jpg`);
+  form.append(
+    "metadata",
+    JSON.stringify({
+      routeId: route.id || "",
+      routeName: route.name || "",
+      sourceName: extractFileName(file.name),
+    }),
+  );
+
+  const url = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(
+    uploadSettings.cloudflareAccountId,
+  )}/images/v1`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: cloudflareHeaders(uploadSettings.cloudflareImagesToken),
+    body: form,
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || payload.success === false) {
+    const errMsg =
+      (payload.errors && payload.errors[0] && payload.errors[0].message) ||
+      payload.message ||
+      "上传到 Cloudflare Images 失败。";
+    throw new Error(errMsg);
+  }
+
+  const result = payload.result || {};
+  const imageId = result.id || "";
+  const variants = Array.isArray(result.variants) ? result.variants : [];
+  const variantUrl = variants[0] || "";
+  if (!imageId || !variantUrl) {
+    throw new Error("Cloudflare Images 返回内容缺失（id/variant）。");
+  }
+
+  return buildCloudflarePhotoUrl(variantUrl, file.name, imageId);
 }
 
 function countAssetReferences(path) {
@@ -909,6 +1093,29 @@ async function deleteUploadedPhotoFromGitHub(photoPath) {
   return true;
 }
 
+async function deleteUploadedPhotoFromCloudflare(photoPath) {
+  validateCloudflareUploadSettings();
+  const imageId = getCloudflareImageId(photoPath);
+  if (!imageId) return false;
+
+  const url = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(
+    uploadSettings.cloudflareAccountId,
+  )}/images/v1/${encodeURIComponent(imageId)}`;
+  const response = await fetch(url, {
+    method: "DELETE",
+    headers: cloudflareHeaders(uploadSettings.cloudflareImagesToken),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || payload.success === false) {
+    const errMsg =
+      (payload.errors && payload.errors[0] && payload.errors[0].message) ||
+      payload.message ||
+      "删除 Cloudflare Images 失败。";
+    throw new Error(errMsg);
+  }
+  return true;
+}
+
 async function uploadPhotosToCurrentRoute() {
   const route = getActiveRoute();
   const input = byId("r-upload-files");
@@ -918,16 +1125,26 @@ async function uploadPhotosToCurrentRoute() {
     return;
   }
 
+  collectPublishForm();
   const files = Array.from(input.files);
+  const provider = (uploadSettings.provider || "github").trim();
   if (uploadBtn) uploadBtn.disabled = true;
   let successCount = 0;
   try {
-    validateGitHubPublishSettings();
+    if (provider === "cloudflare-images") {
+      validateCloudflareUploadSettings();
+    } else {
+      validateGitHubPublishSettings();
+    }
+
     for (let i = 0; i < files.length; i += 1) {
       const file = files[i];
       showMessage("save-msg", `正在上传 ${i + 1}/${files.length}: ${extractFileName(file.name)}...`);
       try {
-        const uploadedPath = await uploadRoutePhotoToGitHub(route, file);
+        const uploadedPath =
+          provider === "cloudflare-images"
+            ? await uploadRoutePhotoToCloudflareImages(route, file)
+            : await uploadRoutePhotoToGitHub(route, file);
         route.photos.push(uploadedPath);
         successCount += 1;
       } catch (error) {
@@ -951,10 +1168,18 @@ async function uploadPhotosToCurrentRoute() {
   if (successCount > 0) {
     showMessage(
       "save-msg",
-      `已上传 ${successCount} 张到仓库并加入当前路线。下一步请点“保存并推送到 GitHub”发布配置。`,
+      provider === "cloudflare-images"
+        ? `已上传 ${successCount} 张到 Cloudflare Images 并加入当前路线。下一步请点“保存并推送到 GitHub”发布配置。`
+        : `已上传 ${successCount} 张到仓库并加入当前路线。下一步请点“保存并推送到 GitHub”发布配置。`,
     );
   } else {
-    showMessage("save-msg", "上传失败：请检查 Token 权限、网络，或重试。", true);
+    showMessage(
+      "save-msg",
+      provider === "cloudflare-images"
+        ? "上传失败：请检查 Cloudflare Account ID、Images Token 或网络后重试。"
+        : "上传失败：请检查 GitHub Token 权限、网络，或重试。",
+      true,
+    );
   }
 }
 
@@ -996,6 +1221,10 @@ async function refreshStateFromRuntime() {
 }
 
 function bindEvents() {
+  byId("upload-provider").addEventListener("change", () => {
+    collectPublishForm();
+    updateUploadProviderUI();
+  });
   byId("slide-route").addEventListener("change", populateSlidePhotoOptions);
   byId("add-slide-btn").addEventListener("click", addSlide);
   byId("slides-table").addEventListener("click", handleSlideTableClick);

@@ -129,7 +129,7 @@
               <input id="r-upload-files" type="file" accept="image/*" multiple />
               <button id="r-upload-btn" class="btn">上传到仓库并加入当前路线</button>
             </div>
-            <p class="tip">上传会压缩后直传到 GitHub 仓库目录，再加入当前路线。</p>
+            <p class="tip">上传会压缩后按“上传通道”写入 Cloudflare Images 或 GitHub 仓库，再加入当前路线。</p>
             <div id="r-photo-list"></div>
           </div>
           <button id="save-route-btn" class="btn primary">保存当前路线</button>
@@ -138,6 +138,18 @@
         <section class="card">
           <h2>数据与发布</h2>
           <h3>GitHub 自动发布配置</h3>
+          <div class="grid two">
+            <label>
+              上传通道
+              <select id="upload-provider">
+                <option value="github">GitHub 仓库（默认）</option>
+                <option value="cloudflare-images">Cloudflare Images（推荐大量图片）</option>
+              </select>
+            </label>
+            <label>Cloudflare Account ID<input id="cf-account-id" type="text" placeholder="Cloudflare 账户 ID" /></label>
+          </div>
+          <label>Cloudflare Images API Token<input id="cf-images-token" type="password" placeholder="仅需 Images 写入权限" /></label>
+
           <div class="grid two">
             <label>仓库 Owner<input id="gh-owner" type="text" placeholder="例如 MervinTT02" /></label>
             <label>仓库名<input id="gh-repo" type="text" placeholder="例如 tt-outdoor-portfolio" /></label>
@@ -159,13 +171,13 @@
           </div>
           <input id="import-file" type="file" accept="application/json" class="hidden" />
           <p class="tip">说明：保存全部配置仅写入当前浏览器。点击“保存并推送到 GitHub”后会更新仓库配置文件并触发 Cloudflare Pages 自动部署。</p>
-          <p class="tip">安全提示：Token 只保存在当前浏览器，请使用仅授予该仓库 Contents: Read and write 的 Fine-grained Token。</p>
+          <p class="tip">安全提示：Token 只保存在当前浏览器。GitHub Token 需仓库 Contents 写权限，Cloudflare Token 需 Images 写权限。</p>
           <p id="save-msg" class="msg"></p>
         </section>
       </section>
     </main>
 
-    <script src="./site-data.js?v=20260303-0010"></script>
-    <script src="./admin.js?v=20260303-0010"></script>
+    <script src="./site-data.js?v=20260303-0200"></script>
+    <script src="./admin.js?v=20260303-0200"></script>
   </body>
 </html>
