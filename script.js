@@ -23,8 +23,6 @@ let lightboxInAnimation = null;
 let heroSlideIndex = 0;
 let heroSlideTimer = null;
 let heroPlaybackOrder = [];
-let galleryRenderLimit = 0;
-let galleryLoadObserver = null;
 
 function applyConfig(nextConfig) {
   config = nextConfig && typeof nextConfig === "object" ? nextConfig : window.TT_DEFAULT_CONFIG;
@@ -46,7 +44,6 @@ function applyConfig(nextConfig) {
   activeFilter = "all";
   visiblePhotos = allPhotos;
   cloudflareImagePolicy = getCloudflareImagePolicy();
-  galleryRenderLimit = getInitialGalleryLimit();
 }
 
 function assetPath(path) {
@@ -83,14 +80,6 @@ function getCloudflareImagePolicy() {
   };
 }
 
-function getInitialGalleryLimit() {
-  return window.innerWidth <= 768 ? 16 : 28;
-}
-
-function getGalleryStepLimit() {
-  return window.innerWidth <= 768 ? 12 : 20;
-}
-
 function buildCloudflareTransformedUrl(src, width, quality, sharpen) {
   try {
     const original = new URL(assetPath(src), window.location.href);
@@ -112,6 +101,7 @@ function buildCloudflareTransformedUrl(src, width, quality, sharpen) {
 function applyCloudflareResponsiveImage(img, src, context = "gallery") {
   const policy = cloudflareImagePolicy || getCloudflareImagePolicy();
   const rawSrc = assetPath(src);
+  const isMobile = window.matchMedia("(max-width: 768px)").matches;
   img.dataset.originalSrc = rawSrc;
   img.dataset.loadRetryCount = "0";
   img.classList.remove("is-load-failed");
@@ -155,7 +145,7 @@ function applyCloudflareResponsiveImage(img, src, context = "gallery") {
     img.dataset.loadFallbackBound = "1";
   }
 
-  if (!policy.enabled || !isCloudflareImageUrl(rawSrc)) {
+  if (!policy.enabled || !isCloudflareImageUrl(rawSrc) || (isMobile && context === "gallery")) {
     img.dataset.cfResponsive = "0";
     img.src = rawSrc;
     img.srcset = "";
@@ -497,63 +487,28 @@ function setFilter(routeId) {
     routeId === "all"
       ? allPhotos
       : allPhotos.filter((photo) => photo.routeId === routeId);
-  galleryRenderLimit = Math.min(getInitialGalleryLimit(), visiblePhotos.length);
   renderFilters();
   renderGallery();
-}
-
-function teardownGalleryObserver() {
-  if (galleryLoadObserver) {
-    galleryLoadObserver.disconnect();
-    galleryLoadObserver = null;
-  }
-}
-
-function appendGallerySentinel(gallery) {
-  teardownGalleryObserver();
-  if (galleryRenderLimit >= visiblePhotos.length) return;
-
-  const sentinel = document.createElement("div");
-  sentinel.className = "gallery-sentinel";
-  sentinel.style.height = "1px";
-  sentinel.style.width = "100%";
-  gallery.appendChild(sentinel);
-
-  galleryLoadObserver = new IntersectionObserver(
-    (entries) => {
-      if (!entries[0] || !entries[0].isIntersecting) return;
-      galleryRenderLimit = Math.min(
-        visiblePhotos.length,
-        galleryRenderLimit + getGalleryStepLimit(),
-      );
-      renderGallery();
-    },
-    { rootMargin: "240px 0px" },
-  );
-  galleryLoadObserver.observe(sentinel);
 }
 
 function renderGallery() {
   const gallery = document.getElementById("gallery-grid");
   if (!gallery) return;
   gallery.innerHTML = "";
-  teardownGalleryObserver();
+  const isMobileViewport = window.matchMedia("(max-width: 760px)").matches;
 
-  const count = Math.min(galleryRenderLimit || getInitialGalleryLimit(), visiblePhotos.length);
-  visiblePhotos.slice(0, count).forEach((photo, index) => {
+  visiblePhotos.forEach((photo, index) => {
     const card = document.createElement("article");
     card.className = "photo-card";
     const img = document.createElement("img");
     img.alt = `${photo.routeName} 第 ${photo.index} 张`;
-    img.loading = "lazy";
+    img.loading = isMobileViewport ? (index < 8 ? "eager" : "lazy") : index < 6 ? "eager" : "lazy";
     img.decoding = "auto";
     applyCloudflareResponsiveImage(img, photo.src, "gallery");
     card.appendChild(img);
     card.addEventListener("click", () => openLightbox(index));
     gallery.appendChild(card);
   });
-
-  appendGallerySentinel(gallery);
 }
 
 function openLightbox(index) {
