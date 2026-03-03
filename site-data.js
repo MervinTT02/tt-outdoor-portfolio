@@ -17,7 +17,7 @@
       navGallery: "摄影作品",
       navAbout: "关于我",
       heroEyebrow: "Personal Hiking & Photography Portfolio",
-      heroTitle: "TT 的摄影档案",
+      heroTitle: "TT的户外摄影档案",
       heroDesc:
         "记录风、云、雪线和脚步。这个网站用来长期展示我在中国各地徒步时拍摄的作品，以及走过的路线记忆。",
       heroPrimaryCta: "浏览作品",
