@@ -617,13 +617,28 @@ h2 {
 
 @media (max-width: 760px) and (orientation: portrait) {
   .gallery-grid {
-    display: block;
-    column-width: var(--gallery-mobile-column-width);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--gallery-gap);
+    row-gap: var(--gallery-gap);
     column-gap: var(--gallery-gap);
+    align-items: start;
+    column-width: auto;
   }
 
   .photo-card {
-    margin: 0 0 var(--gallery-gap);
-    align-self: auto;
+    margin: 0;
+    align-self: start;
+  }
+
+  .gallery-grid.is-packed {
+    display: block;
+    position: relative;
+  }
+
+  .gallery-grid.is-packed .photo-card {
+    position: absolute;
+    margin: 0;
+    width: auto;
   }
 }
