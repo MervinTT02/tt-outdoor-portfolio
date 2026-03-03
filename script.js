@@ -23,6 +23,8 @@ let lightboxInAnimation = null;
 let heroSlideIndex = 0;
 let heroSlideTimer = null;
 let heroPlaybackOrder = [];
+let galleryRenderLimit = 0;
+let galleryLoadObserver = null;
 
 function applyConfig(nextConfig) {
   config = nextConfig && typeof nextConfig === "object" ? nextConfig : window.TT_DEFAULT_CONFIG;
@@ -44,6 +46,7 @@ function applyConfig(nextConfig) {
   activeFilter = "all";
   visiblePhotos = allPhotos;
   cloudflareImagePolicy = getCloudflareImagePolicy();
+  galleryRenderLimit = getInitialGalleryLimit();
 }
 
 function assetPath(path) {
@@ -78,6 +81,14 @@ function getCloudflareImagePolicy() {
     galleryMaxW: clampNumber(galleryConfig.cloudflareGalleryMaxWidth, 600, 3200, 1400),
     lightboxMaxW: clampNumber(galleryConfig.cloudflareLightboxMaxWidth, 900, 4200, 2600),
   };
+}
+
+function getInitialGalleryLimit() {
+  return window.innerWidth <= 768 ? 16 : 28;
+}
+
+function getGalleryStepLimit() {
+  return window.innerWidth <= 768 ? 12 : 20;
 }
 
 function buildCloudflareTransformedUrl(src, width, quality, sharpen) {
@@ -196,6 +207,57 @@ function applyCloudflareResponsiveImage(img, src, context = "gallery") {
   img.srcset = srcset;
   img.sizes = sizes;
   img.src = best || rawSrc;
+}
+
+function firstCloudflareSource() {
+  const heroSlides = normalizeSlides(heroConfig.slides);
+  const heroSrc = heroSlides.find((slide) => isCloudflareImageUrl(slide.src));
+  if (heroSrc) return heroSrc.src;
+  const photoSrc = allPhotos.find((photo) => isCloudflareImageUrl(photo.src));
+  return photoSrc ? photoSrc.src : "";
+}
+
+function probeImage(url, timeoutMs = 2500) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const timer = window.setTimeout(() => {
+      img.src = "";
+      resolve(false);
+    }, timeoutMs);
+    img.onload = () => {
+      window.clearTimeout(timer);
+      resolve(true);
+    };
+    img.onerror = () => {
+      window.clearTimeout(timer);
+      resolve(false);
+    };
+    img.src = url;
+  });
+}
+
+async function ensureCloudflareResponsiveAvailable() {
+  const policy = cloudflareImagePolicy;
+  if (!policy || !policy.enabled) return;
+
+  const source = firstCloudflareSource();
+  if (!source) return;
+
+  const probeUrl = buildCloudflareTransformedUrl(
+    source,
+    Math.min(640, policy.galleryMaxW),
+    policy.quality,
+    policy.sharpen,
+  );
+  if (!probeUrl) {
+    policy.enabled = false;
+    return;
+  }
+
+  const ok = await probeImage(probeUrl, 2500);
+  if (!ok) {
+    policy.enabled = false;
+  }
 }
 
 function normalizeSlides(slides) {
@@ -435,28 +497,63 @@ function setFilter(routeId) {
     routeId === "all"
       ? allPhotos
       : allPhotos.filter((photo) => photo.routeId === routeId);
+  galleryRenderLimit = Math.min(getInitialGalleryLimit(), visiblePhotos.length);
   renderFilters();
   renderGallery();
+}
+
+function teardownGalleryObserver() {
+  if (galleryLoadObserver) {
+    galleryLoadObserver.disconnect();
+    galleryLoadObserver = null;
+  }
+}
+
+function appendGallerySentinel(gallery) {
+  teardownGalleryObserver();
+  if (galleryRenderLimit >= visiblePhotos.length) return;
+
+  const sentinel = document.createElement("div");
+  sentinel.className = "gallery-sentinel";
+  sentinel.style.height = "1px";
+  sentinel.style.width = "100%";
+  gallery.appendChild(sentinel);
+
+  galleryLoadObserver = new IntersectionObserver(
+    (entries) => {
+      if (!entries[0] || !entries[0].isIntersecting) return;
+      galleryRenderLimit = Math.min(
+        visiblePhotos.length,
+        galleryRenderLimit + getGalleryStepLimit(),
+      );
+      renderGallery();
+    },
+    { rootMargin: "240px 0px" },
+  );
+  galleryLoadObserver.observe(sentinel);
 }
 
 function renderGallery() {
   const gallery = document.getElementById("gallery-grid");
   if (!gallery) return;
   gallery.innerHTML = "";
-  const isMobileViewport = window.matchMedia("(max-width: 760px)").matches;
+  teardownGalleryObserver();
 
-  visiblePhotos.forEach((photo, index) => {
+  const count = Math.min(galleryRenderLimit || getInitialGalleryLimit(), visiblePhotos.length);
+  visiblePhotos.slice(0, count).forEach((photo, index) => {
     const card = document.createElement("article");
     card.className = "photo-card";
     const img = document.createElement("img");
     img.alt = `${photo.routeName} 第 ${photo.index} 张`;
-    img.loading = isMobileViewport ? (index < 18 ? "eager" : "lazy") : index < 8 ? "eager" : "lazy";
+    img.loading = "lazy";
     img.decoding = "auto";
     applyCloudflareResponsiveImage(img, photo.src, "gallery");
     card.appendChild(img);
     card.addEventListener("click", () => openLightbox(index));
     gallery.appendChild(card);
   });
+
+  appendGallerySentinel(gallery);
 }
 
 function openLightbox(index) {
@@ -732,6 +829,7 @@ async function loadRuntimeConfig() {
 async function init() {
   const runtimeConfig = await loadRuntimeConfig();
   applyConfig(runtimeConfig);
+  await ensureCloudflareResponsiveAvailable();
 
   applySiteCopy();
   applyGallerySettings();
