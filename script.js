@@ -101,7 +101,51 @@ function buildCloudflareTransformedUrl(src, width, quality, sharpen) {
 function applyCloudflareResponsiveImage(img, src, context = "gallery") {
   const policy = cloudflareImagePolicy || getCloudflareImagePolicy();
   const rawSrc = assetPath(src);
+  img.dataset.originalSrc = rawSrc;
+  img.dataset.loadRetryCount = "0";
+  img.classList.remove("is-load-failed");
+
+  if (!img.dataset.loadFallbackBound) {
+    img.addEventListener("error", () => {
+      const originalSrc = img.dataset.originalSrc || "";
+      if (!originalSrc) return;
+
+      if (img.dataset.cfResponsive === "1") {
+        img.dataset.cfResponsive = "0";
+        img.srcset = "";
+        img.sizes = "";
+        img.src = originalSrc;
+        return;
+      }
+
+      const retries = Number(img.dataset.loadRetryCount || "0");
+      if (retries >= 2) {
+        img.classList.add("is-load-failed");
+        return;
+      }
+
+      img.dataset.loadRetryCount = String(retries + 1);
+      img.srcset = "";
+      img.sizes = "";
+      const delimiter = originalSrc.includes("?") ? "&" : "?";
+      const retryUrl = `${originalSrc}${delimiter}retry=${Date.now()}`;
+      const retryDelayMs = retries === 0 ? 120 : 360;
+      window.setTimeout(() => {
+        if ((img.dataset.originalSrc || "") === originalSrc) {
+          img.src = retryUrl;
+        }
+      }, retryDelayMs);
+    });
+
+    img.addEventListener("load", () => {
+      img.classList.remove("is-load-failed");
+    });
+
+    img.dataset.loadFallbackBound = "1";
+  }
+
   if (!policy.enabled || !isCloudflareImageUrl(rawSrc)) {
+    img.dataset.cfResponsive = "0";
     img.src = rawSrc;
     img.srcset = "";
     img.sizes = "";
@@ -133,6 +177,7 @@ function applyCloudflareResponsiveImage(img, src, context = "gallery") {
     .join(", ");
 
   if (!srcset) {
+    img.dataset.cfResponsive = "0";
     img.src = rawSrc;
     img.srcset = "";
     img.sizes = "";
@@ -148,18 +193,6 @@ function applyCloudflareResponsiveImage(img, src, context = "gallery") {
   const best = buildCloudflareTransformedUrl(rawSrc, maxW, policy.quality, policy.sharpen);
 
   img.dataset.cfResponsive = "1";
-  img.dataset.cfOriginal = rawSrc;
-  if (!img.dataset.cfFallbackBound) {
-    img.addEventListener("error", () => {
-      if (img.dataset.cfResponsive !== "1") return;
-      img.dataset.cfResponsive = "0";
-      img.srcset = "";
-      img.sizes = "";
-      img.src = img.dataset.cfOriginal || "";
-    });
-    img.dataset.cfFallbackBound = "1";
-  }
-
   img.srcset = srcset;
   img.sizes = sizes;
   img.src = best || rawSrc;
@@ -410,14 +443,15 @@ function renderGallery() {
   const gallery = document.getElementById("gallery-grid");
   if (!gallery) return;
   gallery.innerHTML = "";
+  const isMobileViewport = window.matchMedia("(max-width: 760px)").matches;
 
   visiblePhotos.forEach((photo, index) => {
     const card = document.createElement("article");
     card.className = "photo-card";
     const img = document.createElement("img");
     img.alt = `${photo.routeName} 第 ${photo.index} 张`;
-    img.loading = "lazy";
-    img.decoding = "async";
+    img.loading = isMobileViewport ? (index < 18 ? "eager" : "lazy") : index < 8 ? "eager" : "lazy";
+    img.decoding = "auto";
     applyCloudflareResponsiveImage(img, photo.src, "gallery");
     card.appendChild(img);
     card.addEventListener("click", () => openLightbox(index));

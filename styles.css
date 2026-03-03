@@ -620,11 +620,14 @@ h2 {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--gallery-gap);
+    row-gap: var(--gallery-gap);
+    column-gap: var(--gallery-gap);
+    align-items: start;
     column-width: auto;
-    column-gap: 0;
   }
 
   .photo-card {
     margin: 0;
+    align-self: start;
   }
 }
