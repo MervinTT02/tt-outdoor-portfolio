@@ -29,6 +29,24 @@ function byId(id) {
   return document.getElementById(id);
 }
 
+function getInputValue(id, fallback = "") {
+  const node = byId(id);
+  if (!node || typeof node.value !== "string") return fallback;
+  return node.value;
+}
+
+function setInputValue(id, value) {
+  const node = byId(id);
+  if (!node || typeof node.value !== "string") return;
+  node.value = value;
+}
+
+function getCheckedValue(id, fallback = false) {
+  const node = byId(id);
+  if (!node || typeof node.checked !== "boolean") return fallback;
+  return node.checked;
+}
+
 function toAssetSrc(path) {
   if (typeof path !== "string") return "";
   if (path.startsWith("data:")) return path;
@@ -133,14 +151,7 @@ function isCloudflareManagedUploadPhoto(path) {
 }
 
 function photosToTextareaLines(photos) {
-  let localUploadIndex = 0;
-  return (Array.isArray(photos) ? photos : []).map((photo) => {
-    if (isDataUrl(photo)) {
-      localUploadIndex += 1;
-      return `[本地上传图片 ${localUploadIndex}] ${getPhotoLabel(photo, localUploadIndex - 1)}`;
-    }
-    return photo;
-  });
+  return sanitizePhotoList(photos);
 }
 
 function parseTextareaPhotos(value) {
@@ -150,6 +161,27 @@ function parseTextareaPhotos(value) {
     .filter(Boolean)
     .filter((line) => !isPlaceholderLine(line))
     .filter((line) => !isDataUrl(line));
+}
+
+function sanitizePhotoList(photos) {
+  const seen = new Set();
+  const result = [];
+  (Array.isArray(photos) ? photos : []).forEach((photo) => {
+    const text = String(photo || "").trim();
+    if (!text) return;
+    if (isPlaceholderLine(text) || isDataUrl(text)) return;
+    if (seen.has(text)) return;
+    seen.add(text);
+    result.push(text);
+  });
+  return result;
+}
+
+function sanitizeAllRoutes() {
+  state.routes = (state.routes || []).map((route) => ({
+    ...route,
+    photos: sanitizePhotoList(route.photos),
+  }));
 }
 
 function showMessage(id, text, isError = false) {
@@ -231,36 +263,39 @@ function persistUploadSettings() {
 }
 
 function collectPublishForm() {
-  uploadSettings.provider = byId("upload-provider").value || "github";
-  uploadSettings.cloudflareAccountId = byId("cf-account-id").value.trim();
-  uploadSettings.cloudflareImagesToken = byId("cf-images-token").value.trim();
+  uploadSettings.provider = (getInputValue("upload-provider", "github") || "github").trim();
+  uploadSettings.cloudflareAccountId = getInputValue("cf-account-id", "").trim();
+  uploadSettings.cloudflareImagesToken = getInputValue("cf-images-token", "").trim();
   persistUploadSettings();
 
-  publishSettings.owner = byId("gh-owner").value.trim();
-  publishSettings.repo = byId("gh-repo").value.trim();
-  publishSettings.branch = byId("gh-branch").value.trim() || "main";
-  publishSettings.token = byId("gh-token").value.trim();
+  publishSettings.owner = getInputValue("gh-owner", publishSettings.owner || "").trim();
+  publishSettings.repo = getInputValue("gh-repo", publishSettings.repo || "").trim();
+  publishSettings.branch = getInputValue("gh-branch", publishSettings.branch || "main").trim() || "main";
+  publishSettings.token = getInputValue("gh-token", publishSettings.token || "").trim();
   publishSettings.commitMessage =
-    byId("gh-commit-message").value.trim() || DEFAULT_PUBLISH_SETTINGS.commitMessage;
+    getInputValue("gh-commit-message", publishSettings.commitMessage || "").trim() ||
+    DEFAULT_PUBLISH_SETTINGS.commitMessage;
   persistPublishSettings();
 }
 
 function applyPublishForm() {
-  byId("upload-provider").value = uploadSettings.provider || "github";
-  byId("cf-account-id").value = uploadSettings.cloudflareAccountId || "";
-  byId("cf-images-token").value = uploadSettings.cloudflareImagesToken || "";
+  setInputValue("upload-provider", uploadSettings.provider || "github");
+  setInputValue("cf-account-id", uploadSettings.cloudflareAccountId || "");
+  setInputValue("cf-images-token", uploadSettings.cloudflareImagesToken || "");
 
-  byId("gh-owner").value = publishSettings.owner || "";
-  byId("gh-repo").value = publishSettings.repo || "";
-  byId("gh-branch").value = publishSettings.branch || "main";
-  byId("gh-token").value = publishSettings.token || "";
-  byId("gh-commit-message").value =
-    publishSettings.commitMessage || DEFAULT_PUBLISH_SETTINGS.commitMessage;
+  setInputValue("gh-owner", publishSettings.owner || "");
+  setInputValue("gh-repo", publishSettings.repo || "");
+  setInputValue("gh-branch", publishSettings.branch || "main");
+  setInputValue("gh-token", publishSettings.token || "");
+  setInputValue(
+    "gh-commit-message",
+    publishSettings.commitMessage || DEFAULT_PUBLISH_SETTINGS.commitMessage,
+  );
   updateUploadProviderUI();
 }
 
 function updateUploadProviderUI() {
-  const provider = byId("upload-provider").value || "github";
+  const provider = getInputValue("upload-provider", "github") || "github";
   const uploadBtn = byId("r-upload-btn");
   const cfAccountInput = byId("cf-account-id");
   const cfTokenInput = byId("cf-images-token");
@@ -273,63 +308,85 @@ function updateUploadProviderUI() {
 }
 
 function collectSiteForm() {
-  state.site.brandText = byId("f-brand-text").value.trim();
-  state.site.heroTitle = byId("f-hero-title").value.trim();
-  state.site.heroDesc = byId("f-hero-desc").value.trim();
-  state.site.routesTitle = byId("f-routes-title").value.trim();
-  state.site.galleryTitle = byId("f-gallery-title").value.trim();
-  state.site.aboutTitle = byId("f-about-title").value.trim();
-  state.site.aboutText = byId("f-about-text").value.trim();
+  state.site.brandText = getInputValue("f-brand-text", state.site.brandText || "").trim();
+  state.site.heroTitle = getInputValue("f-hero-title", state.site.heroTitle || "").trim();
+  state.site.heroDesc = getInputValue("f-hero-desc", state.site.heroDesc || "").trim();
+  state.site.routesTitle = getInputValue("f-routes-title", state.site.routesTitle || "").trim();
+  state.site.galleryTitle = getInputValue("f-gallery-title", state.site.galleryTitle || "").trim();
+  state.site.aboutTitle = getInputValue("f-about-title", state.site.aboutTitle || "").trim();
+  state.site.aboutText = getInputValue("f-about-text", state.site.aboutText || "").trim();
 }
 
 function applySiteForm() {
-  byId("f-brand-text").value = state.site.brandText || "";
-  byId("f-hero-title").value = state.site.heroTitle || "";
-  byId("f-hero-desc").value = state.site.heroDesc || "";
-  byId("f-routes-title").value = state.site.routesTitle || "";
-  byId("f-gallery-title").value = state.site.galleryTitle || "";
-  byId("f-about-title").value = state.site.aboutTitle || "";
-  byId("f-about-text").value = state.site.aboutText || "";
+  setInputValue("f-brand-text", state.site.brandText || "");
+  setInputValue("f-hero-title", state.site.heroTitle || "");
+  setInputValue("f-hero-desc", state.site.heroDesc || "");
+  setInputValue("f-routes-title", state.site.routesTitle || "");
+  setInputValue("f-gallery-title", state.site.galleryTitle || "");
+  setInputValue("f-about-title", state.site.aboutTitle || "");
+  setInputValue("f-about-text", state.site.aboutText || "");
 }
 
 function collectHeroSettings() {
   state.gallery = state.gallery || {};
-  state.hero.intervalMs = Number(byId("f-hero-interval").value) * 1000;
-  state.hero.transitionMs = Number(byId("f-hero-transition").value);
-  state.hero.playMode = byId("f-hero-play-mode").value;
-  state.hero.showRouteLabel = byId("f-show-route-label").checked;
+  state.hero.intervalMs = Number(getInputValue("f-hero-interval", "7")) * 1000;
+  state.hero.transitionMs = Number(getInputValue("f-hero-transition", "1150"));
+  state.hero.playMode = getInputValue("f-hero-play-mode", state.hero.playMode || "shuffle-once");
+  state.hero.showRouteLabel = getCheckedValue("f-show-route-label", state.hero.showRouteLabel !== false);
 
-  state.gallery.cloudflareResponsive = byId("f-cf-responsive").checked;
-  state.gallery.cloudflareQuality = Number(byId("f-cf-quality").value);
-  state.gallery.cloudflareSharpen = Number(byId("f-cf-sharpen").value);
-  state.gallery.cloudflareHeroMaxWidth = Number(byId("f-cf-hero-maxw").value);
-  state.gallery.cloudflareGalleryMaxWidth = Number(byId("f-cf-gallery-maxw").value);
-  state.gallery.cloudflareLightboxMaxWidth = Number(byId("f-cf-lightbox-maxw").value);
+  state.gallery.cloudflareResponsive = getCheckedValue(
+    "f-cf-responsive",
+    state.gallery.cloudflareResponsive === true,
+  );
+  state.gallery.cloudflareQuality = Number(getInputValue("f-cf-quality", "88"));
+  state.gallery.cloudflareSharpen = Number(getInputValue("f-cf-sharpen", "1"));
+  state.gallery.cloudflareHeroMaxWidth = Number(getInputValue("f-cf-hero-maxw", "1920"));
+  state.gallery.cloudflareGalleryMaxWidth = Number(getInputValue("f-cf-gallery-maxw", "1400"));
+  state.gallery.cloudflareLightboxMaxWidth = Number(getInputValue("f-cf-lightbox-maxw", "2600"));
 }
 
 function applyHeroSettings() {
   state.gallery = state.gallery || {};
-  byId("f-hero-interval").value = Math.round((state.hero.intervalMs || 7000) / 1000);
-  byId("f-hero-transition").value = state.hero.transitionMs || 1150;
-  byId("f-hero-play-mode").value = state.hero.playMode || "shuffle-once";
-  byId("f-show-route-label").checked = state.hero.showRouteLabel !== false;
+  setInputValue("f-hero-interval", String(Math.round((state.hero.intervalMs || 7000) / 1000)));
+  setInputValue("f-hero-transition", String(state.hero.transitionMs || 1150));
+  setInputValue("f-hero-play-mode", state.hero.playMode || "shuffle-once");
+  const routeLabelNode = byId("f-show-route-label");
+  if (routeLabelNode) routeLabelNode.checked = state.hero.showRouteLabel !== false;
 
-  byId("f-cf-responsive").checked = state.gallery.cloudflareResponsive === true;
-  byId("f-cf-quality").value = Number.isFinite(state.gallery.cloudflareQuality)
-    ? state.gallery.cloudflareQuality
-    : 88;
-  byId("f-cf-sharpen").value = Number.isFinite(state.gallery.cloudflareSharpen)
-    ? state.gallery.cloudflareSharpen
-    : 1;
-  byId("f-cf-hero-maxw").value = Number.isFinite(state.gallery.cloudflareHeroMaxWidth)
-    ? state.gallery.cloudflareHeroMaxWidth
-    : 1920;
-  byId("f-cf-gallery-maxw").value = Number.isFinite(state.gallery.cloudflareGalleryMaxWidth)
-    ? state.gallery.cloudflareGalleryMaxWidth
-    : 1400;
-  byId("f-cf-lightbox-maxw").value = Number.isFinite(state.gallery.cloudflareLightboxMaxWidth)
-    ? state.gallery.cloudflareLightboxMaxWidth
-    : 2600;
+  const cfResponsiveNode = byId("f-cf-responsive");
+  if (cfResponsiveNode) cfResponsiveNode.checked = state.gallery.cloudflareResponsive === true;
+  setInputValue(
+    "f-cf-quality",
+    String(Number.isFinite(state.gallery.cloudflareQuality) ? state.gallery.cloudflareQuality : 88),
+  );
+  setInputValue(
+    "f-cf-sharpen",
+    String(Number.isFinite(state.gallery.cloudflareSharpen) ? state.gallery.cloudflareSharpen : 1),
+  );
+  setInputValue(
+    "f-cf-hero-maxw",
+    String(
+      Number.isFinite(state.gallery.cloudflareHeroMaxWidth)
+        ? state.gallery.cloudflareHeroMaxWidth
+        : 1920,
+    ),
+  );
+  setInputValue(
+    "f-cf-gallery-maxw",
+    String(
+      Number.isFinite(state.gallery.cloudflareGalleryMaxWidth)
+        ? state.gallery.cloudflareGalleryMaxWidth
+        : 1400,
+    ),
+  );
+  setInputValue(
+    "f-cf-lightbox-maxw",
+    String(
+      Number.isFinite(state.gallery.cloudflareLightboxMaxWidth)
+        ? state.gallery.cloudflareLightboxMaxWidth
+        : 2600,
+    ),
+  );
 }
 
 function refreshOverview() {
@@ -461,6 +518,7 @@ function fillRouteForm(routeId) {
   const route = state.routes.find((item) => item.id === routeId);
   if (!route) return;
   activeRouteId = route.id;
+  route.photos = sanitizePhotoList(route.photos);
   byId("r-name").value = route.name || "";
   byId("r-location").value = route.location || "";
   byId("r-effort").value = route.effort || "";
@@ -592,16 +650,18 @@ async function handleRoutePhotoListClick(event) {
 
 function saveCurrentRoute(showNotice = true) {
   const route = state.routes.find((item) => item.id === activeRouteId);
-  if (!route) return;
+  if (!route) {
+    showMessage("save-msg", "未找到当前路线，无法保存。", true);
+    return;
+  }
 
-  route.name = byId("r-name").value.trim();
-  route.location = byId("r-location").value.trim();
-  route.effort = byId("r-effort").value.trim();
-  route.cover = byId("r-cover").value.trim();
-  route.highlight = byId("r-highlight").value.trim();
-  const manualPhotos = parseTextareaPhotos(byId("r-photos").value);
-  const uploadedPhotos = (route.photos || []).filter((photo) => isDataUrl(photo));
-  route.photos = Array.from(new Set([...manualPhotos, ...uploadedPhotos]));
+  route.name = getInputValue("r-name", route.name || "").trim();
+  route.location = getInputValue("r-location", route.location || "").trim();
+  route.effort = getInputValue("r-effort", route.effort || "").trim();
+  route.cover = getInputValue("r-cover", route.cover || "").trim();
+  route.highlight = getInputValue("r-highlight", route.highlight || "").trim();
+  const manualPhotos = parseTextareaPhotos(getInputValue("r-photos", ""));
+  route.photos = sanitizePhotoList([...manualPhotos, ...(route.photos || [])]);
 
   populateRoutePicker();
   fillRouteForm(route.id);
@@ -1183,7 +1243,7 @@ async function uploadPhotosToCurrentRoute() {
     return;
   }
 
-  route.photos = Array.from(new Set(route.photos));
+  route.photos = sanitizePhotoList(route.photos);
   syncRoutePhotosTextarea(route);
   renderRoutePhotoList(route);
   fillRouteForm(route.id);
@@ -1241,53 +1301,63 @@ async function refreshStateFromRuntime() {
   } else {
     state = storage.getConfig();
   }
+  sanitizeAllRoutes();
   if (!state.routes.some((route) => route.id === activeRouteId)) {
     activeRouteId = state.routes[0] ? state.routes[0].id : "";
   }
 }
 
 function bindEvents() {
-  byId("upload-provider").addEventListener("change", () => {
+  const on = (id, eventName, handler) => {
+    const node = byId(id);
+    if (!node) return false;
+    node.addEventListener(eventName, handler);
+    return true;
+  };
+
+  on("upload-provider", "change", () => {
     collectPublishForm();
     updateUploadProviderUI();
   });
-  byId("slide-route").addEventListener("change", populateSlidePhotoOptions);
-  byId("add-slide-btn").addEventListener("click", addSlide);
-  byId("slides-table").addEventListener("click", handleSlideTableClick);
+  on("slide-route", "change", populateSlidePhotoOptions);
+  on("add-slide-btn", "click", addSlide);
+  on("slides-table", "click", handleSlideTableClick);
 
-  byId("route-picker").addEventListener("change", (event) => {
+  on("route-picker", "change", (event) => {
     activeRouteId = event.target.value;
     fillRouteForm(activeRouteId);
   });
-  byId("save-route-btn").addEventListener("click", saveCurrentRoute);
-  byId("new-route-btn").addEventListener("click", createRoute);
-  byId("delete-route-btn").addEventListener("click", deleteRoute);
-  byId("r-upload-btn").addEventListener("click", uploadPhotosToCurrentRoute);
-  byId("r-photo-list").addEventListener("click", handleRoutePhotoListClick);
-  byId("r-photos").addEventListener("blur", () => {
+  on("save-route-btn", "click", saveCurrentRoute);
+  on("new-route-btn", "click", createRoute);
+  on("delete-route-btn", "click", deleteRoute);
+  on("r-upload-btn", "click", uploadPhotosToCurrentRoute);
+  on("r-photo-list", "click", handleRoutePhotoListClick);
+  on("r-photos", "blur", () => {
     const route = getActiveRoute();
     if (!route) return;
-    const manualPhotos = parseTextareaPhotos(byId("r-photos").value);
-    const uploadedPhotos = (route.photos || []).filter((photo) => isDataUrl(photo));
-    route.photos = Array.from(new Set([...manualPhotos, ...uploadedPhotos]));
+    const manualPhotos = parseTextareaPhotos(getInputValue("r-photos", ""));
+    route.photos = sanitizePhotoList([...manualPhotos, ...(route.photos || [])]);
     syncRoutePhotosTextarea(route);
   });
 
-  byId("build-20-landscape").addEventListener("click", async () => {
+  on("build-20-landscape", "click", async () => {
     await buildLandscapeSlides(20);
   });
 
-  byId("save-all-btn").addEventListener("click", saveAll);
-  byId("publish-github-btn").addEventListener("click", publishToGitHub);
-  byId("export-btn").addEventListener("click", exportConfig);
-  byId("import-btn").addEventListener("click", () => byId("import-file").click());
-  byId("import-file").addEventListener("change", (event) => {
+  on("save-all-btn", "click", saveAll);
+  on("publish-github-btn", "click", publishToGitHub);
+  on("export-btn", "click", exportConfig);
+  on("import-btn", "click", () => {
+    const fileInput = byId("import-file");
+    if (fileInput) fileInput.click();
+  });
+  on("import-file", "change", (event) => {
     const file = event.target.files && event.target.files[0];
     if (file) importConfigFromFile(file);
     event.target.value = "";
   });
-  byId("reset-btn").addEventListener("click", resetToDefault);
-  byId("change-passcode-btn").addEventListener("click", changePasscode);
+  on("reset-btn", "click", resetToDefault);
+  on("change-passcode-btn", "click", changePasscode);
 }
 
 function setupLogin() {
@@ -1295,22 +1365,28 @@ function setupLogin() {
     await refreshStateFromRuntime();
     publishSettings = loadPublishSettings();
     uploadSettings = loadUploadSettings();
-    byId("admin-panel").classList.remove("hidden");
-    byId("login-card").classList.add("hidden");
-    byId("login-msg").textContent = "";
+    const panel = byId("admin-panel");
+    const loginCard = byId("login-card");
+    const loginMsg = byId("login-msg");
+    if (panel) panel.classList.remove("hidden");
+    if (loginCard) loginCard.classList.add("hidden");
+    if (loginMsg) loginMsg.textContent = "";
     hydrateAll();
   };
 
-  byId("login-btn").addEventListener("click", async () => {
-    const pass = byId("login-passcode").value;
-    if (pass !== getCurrentPasscode()) {
-      setAdminLoggedIn(false);
-      showMessage("login-msg", "密码错误。", true);
-      return;
-    }
-    setAdminLoggedIn(true);
-    await openAdminPanel();
-  });
+  const loginBtn = byId("login-btn");
+  if (loginBtn) {
+    loginBtn.addEventListener("click", async () => {
+      const pass = getInputValue("login-passcode", "");
+      if (pass !== getCurrentPasscode()) {
+        setAdminLoggedIn(false);
+        showMessage("login-msg", "密码错误。", true);
+        return;
+      }
+      setAdminLoggedIn(true);
+      await openAdminPanel();
+    });
+  }
 
   if (isAdminLoggedIn()) {
     openAdminPanel();
