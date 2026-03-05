@@ -1,6 +1,6 @@
 const storage = window.TTStorage;
 const PASSCODE_KEY = "tt_admin_passcode";
-const DEFAULT_PASSCODE = "ttadmin";
+const DEFAULT_PASSCODE = "Zxcvbnm123.";
 const ADMIN_AUTH_KEY = "tt_admin_logged_in_v1";
 const PUBLISH_SETTINGS_KEY = "tt_publish_settings_v1";
 const UPLOAD_SETTINGS_KEY = "tt_upload_settings_v1";
@@ -24,6 +24,21 @@ let activeRouteId = state.routes[0] ? state.routes[0].id : "";
 const imageOrientationCache = new Map();
 let publishSettings = loadPublishSettings();
 let uploadSettings = loadUploadSettings();
+
+function normalizePasscode(value) {
+  const text = String(value || "").trim();
+  return text || DEFAULT_PASSCODE;
+}
+
+function ensureAdminConfig(target = state) {
+  if (!target || typeof target !== "object") return;
+  if (!target.admin || typeof target.admin !== "object") {
+    target.admin = {};
+  }
+  const fallback =
+    localStorage.getItem(PASSCODE_KEY) || getCookieValue(PASSCODE_KEY) || DEFAULT_PASSCODE;
+  target.admin.passcode = normalizePasscode(target.admin.passcode || fallback);
+}
 
 function byId(id) {
   return document.getElementById(id);
@@ -204,14 +219,20 @@ function getCookieValue(key) {
 }
 
 function getCurrentPasscode() {
+  const statePass = String(state && state.admin ? state.admin.passcode || "" : "").trim();
+  if (statePass) return statePass;
   const localPass = localStorage.getItem(PASSCODE_KEY);
   if (localPass) return localPass;
   const cookiePass = getCookieValue(PASSCODE_KEY);
   return cookiePass || DEFAULT_PASSCODE;
 }
 
-function setCurrentPasscode(value) {
-  const safeValue = String(value || "").trim() || DEFAULT_PASSCODE;
+function setCurrentPasscode(value, options = {}) {
+  const safeValue = normalizePasscode(value);
+  if (options.syncState !== false) {
+    ensureAdminConfig(state);
+    state.admin.passcode = safeValue;
+  }
   localStorage.setItem(PASSCODE_KEY, safeValue);
   document.cookie = `${PASSCODE_KEY}=${encodeURIComponent(
     safeValue,
@@ -1281,6 +1302,11 @@ function changePasscode() {
     return;
   }
   setCurrentPasscode(newPass);
+  try {
+    storage.saveConfig(state);
+  } catch (error) {
+    // Keep passcode update even when local config write fails.
+  }
   showMessage("save-msg", "后台密码已更新。");
 }
 
@@ -1301,6 +1327,8 @@ async function refreshStateFromRuntime() {
   } else {
     state = storage.getConfig();
   }
+  ensureAdminConfig(state);
+  setCurrentPasscode(state.admin.passcode, { syncState: false });
   sanitizeAllRoutes();
   if (!state.routes.some((route) => route.id === activeRouteId)) {
     activeRouteId = state.routes[0] ? state.routes[0].id : "";
@@ -1377,6 +1405,7 @@ function setupLogin() {
   const loginBtn = byId("login-btn");
   if (loginBtn) {
     loginBtn.addEventListener("click", async () => {
+      await refreshStateFromRuntime();
       const pass = getInputValue("login-passcode", "");
       if (pass !== getCurrentPasscode()) {
         setAdminLoggedIn(false);
@@ -1394,6 +1423,8 @@ function setupLogin() {
 }
 
 function init() {
+  ensureAdminConfig(state);
+  setCurrentPasscode(state.admin.passcode, { syncState: false });
   bindEvents();
   setupLogin();
 }
