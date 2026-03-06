@@ -1,18 +1,19 @@
-const storage = window.TTStorage;
+﻿const storage = window.TTStorage;
 const PASSCODE_KEY = "tt_admin_passcode";
 const DEFAULT_PASSCODE = "Zxcvbnm123.";
 const ADMIN_AUTH_KEY = "tt_admin_logged_in_v1";
 const PUBLISH_SETTINGS_KEY = "tt_publish_settings_v1";
 const UPLOAD_SETTINGS_KEY = "tt_upload_settings_v1";
-const REPO_UPLOAD_PREFIX = "个人摄影集/后台上传/";
+const REPO_UPLOAD_PREFIX = "uploads/";
 const CLOUDFLARE_IMAGES_HOST = "imagedelivery.net";
+
 const DEFAULT_PUBLISH_SETTINGS = {
   owner: "MervinTT02",
   repo: "tt-outdoor-portfolio",
   branch: "main",
   token: "",
-  commitMessage: "chore: update site config from admin panel",
 };
+
 const DEFAULT_UPLOAD_SETTINGS = {
   provider: "github",
   cloudflareAccountId: "",
@@ -21,9 +22,16 @@ const DEFAULT_UPLOAD_SETTINGS = {
 
 let state = storage.getConfig();
 let activeRouteId = state.routes[0] ? state.routes[0].id : "";
-const imageOrientationCache = new Map();
 let publishSettings = loadPublishSettings();
 let uploadSettings = loadUploadSettings();
+
+function byId(id) {
+  return document.getElementById(id);
+}
+
+function deepClone(value) {
+  return storage.deepClone(value);
+}
 
 function normalizePasscode(value) {
   const text = String(value || "").trim();
@@ -35,19 +43,51 @@ function ensureAdminConfig(target = state) {
   if (!target.admin || typeof target.admin !== "object") {
     target.admin = {};
   }
-  const fallback =
-    localStorage.getItem(PASSCODE_KEY) || getCookieValue(PASSCODE_KEY) || DEFAULT_PASSCODE;
+  const fallback = localStorage.getItem(PASSCODE_KEY) || getCookieValue(PASSCODE_KEY) || DEFAULT_PASSCODE;
   target.admin.passcode = normalizePasscode(target.admin.passcode || fallback);
 }
 
-function byId(id) {
-  return document.getElementById(id);
+function getCookieValue(key) {
+  const prefix = `${key}=`;
+  const found = document.cookie.split("; ").find((item) => item.startsWith(prefix));
+  return found ? decodeURIComponent(found.slice(prefix.length)) : "";
 }
 
-function getInputValue(id, fallback = "") {
+function getCurrentPasscode() {
+  const statePass = String(state && state.admin ? state.admin.passcode || "" : "").trim();
+  if (statePass) return statePass;
+  return localStorage.getItem(PASSCODE_KEY) || getCookieValue(PASSCODE_KEY) || DEFAULT_PASSCODE;
+}
+
+function setCurrentPasscode(value, options = {}) {
+  const safeValue = normalizePasscode(value);
+  if (options.syncState !== false) {
+    ensureAdminConfig(state);
+    state.admin.passcode = safeValue;
+  }
+  localStorage.setItem(PASSCODE_KEY, safeValue);
+  document.cookie = `${PASSCODE_KEY}=${encodeURIComponent(safeValue)}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+}
+
+function setAdminLoggedIn(value) {
+  localStorage.setItem(ADMIN_AUTH_KEY, value ? "1" : "0");
+  if (value) {
+    document.cookie = `${ADMIN_AUTH_KEY}=1; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
+  } else {
+    document.cookie = `${ADMIN_AUTH_KEY}=0; path=/; max-age=0; SameSite=Lax`;
+  }
+}
+
+function isAdminLoggedIn() {
+  if (localStorage.getItem(ADMIN_AUTH_KEY) === "1") return true;
+  return document.cookie.split("; ").some((item) => item === `${ADMIN_AUTH_KEY}=1`);
+}
+
+function showMessage(id, text, isError = false) {
   const node = byId(id);
-  if (!node || typeof node.value !== "string") return fallback;
-  return node.value;
+  if (!node) return;
+  node.textContent = text;
+  node.style.color = isError ? "#cc2842" : "#1f50b7";
 }
 
 function setInputValue(id, value) {
@@ -56,26 +96,32 @@ function setInputValue(id, value) {
   node.value = value;
 }
 
-function getCheckedValue(id, fallback = false) {
+function getInputValue(id, fallback = "") {
   const node = byId(id);
-  if (!node || typeof node.checked !== "boolean") return fallback;
-  return node.checked;
+  if (!node || typeof node.value !== "string") return fallback;
+  return node.value;
+}
+
+function sanitizePhotoList(photos) {
+  const seen = new Set();
+  const result = [];
+  (Array.isArray(photos) ? photos : []).forEach((photo) => {
+    const text = String(photo || "").trim();
+    if (!text || seen.has(text)) return;
+    seen.add(text);
+    result.push(text);
+  });
+  return result;
+}
+
+function sanitizeAllRoutes() {
+  state.routes = (state.routes || []).map((route) => ({ ...route, photos: sanitizePhotoList(route.photos) }));
 }
 
 function toAssetSrc(path) {
   if (typeof path !== "string") return "";
   if (path.startsWith("data:")) return path;
   return encodeURI(path);
-}
-
-function isDataUrl(path) {
-  if (typeof path !== "string") return false;
-  const normalized = path.trim().toLowerCase();
-  return normalized.startsWith("data:image/") || normalized.includes(";base64,");
-}
-
-function isPlaceholderLine(line) {
-  return String(line || "").trim().startsWith("[本地上传图片");
 }
 
 function getUrlParam(path, key) {
@@ -102,28 +148,6 @@ function extractFileName(path) {
   }
 }
 
-function readDataUrlName(dataUrl) {
-  if (!isDataUrl(dataUrl)) return "";
-  const marker = ";name=";
-  const start = dataUrl.indexOf(marker);
-  if (start === -1) return "";
-  const from = start + marker.length;
-  const end = dataUrl.indexOf(";base64,", from);
-  const raw = end === -1 ? dataUrl.slice(from) : dataUrl.slice(from, end);
-  try {
-    return decodeURIComponent(raw);
-  } catch (error) {
-    return raw;
-  }
-}
-
-function getPhotoLabel(photo, index = 0) {
-  if (isDataUrl(photo)) {
-    return readDataUrlName(photo) || `本地上传图片_${index + 1}.jpg`;
-  }
-  return extractFileName(photo);
-}
-
 function normalizeUploadBaseName(name) {
   const raw = extractFileName(name).replace(/\.[^.]+$/, "");
   const normalized = raw
@@ -136,16 +160,11 @@ function normalizeUploadBaseName(name) {
 
 function buildUploadAssetPath(route, fileName) {
   const date = new Date();
-  const stamp = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(
-    date.getDate(),
-  ).padStart(2, "0")}-${String(date.getHours()).padStart(2, "0")}${String(
-    date.getMinutes(),
-  ).padStart(2, "0")}${String(date.getSeconds()).padStart(2, "0")}`;
+  const stamp = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}-${String(date.getHours()).padStart(2, "0")}${String(date.getMinutes()).padStart(2, "0")}${String(date.getSeconds()).padStart(2, "0")}`;
   const random = Math.random().toString(36).slice(2, 7);
-  const safeExt = "jpg";
   const base = normalizeUploadBaseName(fileName);
   const routeFolder = route && route.id ? route.id : "route";
-  return `个人摄影集/后台上传/${routeFolder}/${stamp}-${random}-${base}.${safeExt}`;
+  return `${REPO_UPLOAD_PREFIX}${routeFolder}/${stamp}-${random}-${base}.jpg`;
 }
 
 function normalizeAssetPath(path) {
@@ -156,661 +175,57 @@ function normalizeAssetPath(path) {
 }
 
 function isRepoManagedUploadPhoto(path) {
-  if (isDataUrl(path)) return false;
   return normalizeAssetPath(path).startsWith(REPO_UPLOAD_PREFIX);
 }
 
 function isCloudflareManagedUploadPhoto(path) {
-  if (isDataUrl(path)) return false;
   return Boolean(getUrlParam(path, "cfid"));
 }
 
-function photosToTextareaLines(photos) {
-  return sanitizePhotoList(photos);
-}
-
-function parseTextareaPhotos(value) {
-  return String(value || "")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .filter((line) => !isPlaceholderLine(line))
-    .filter((line) => !isDataUrl(line));
-}
-
-function sanitizePhotoList(photos) {
-  const seen = new Set();
-  const result = [];
-  (Array.isArray(photos) ? photos : []).forEach((photo) => {
-    const text = String(photo || "").trim();
-    if (!text) return;
-    if (isPlaceholderLine(text) || isDataUrl(text)) return;
-    if (seen.has(text)) return;
-    seen.add(text);
-    result.push(text);
-  });
-  return result;
-}
-
-function sanitizeAllRoutes() {
-  state.routes = (state.routes || []).map((route) => ({
-    ...route,
-    photos: sanitizePhotoList(route.photos),
-  }));
-}
-
-function showMessage(id, text, isError = false) {
-  const node = byId(id);
-  if (!node) return;
-  node.textContent = text;
-  node.style.color = isError ? "#9d2435" : "#214a89";
-}
-
-function deepClone(value) {
-  return storage.deepClone(value);
-}
-
-function getCookieValue(key) {
-  const prefix = `${key}=`;
-  const found = document.cookie
-    .split("; ")
-    .find((item) => item.startsWith(prefix));
-  return found ? decodeURIComponent(found.slice(prefix.length)) : "";
-}
-
-function getCurrentPasscode() {
-  const statePass = String(state && state.admin ? state.admin.passcode || "" : "").trim();
-  if (statePass) return statePass;
-  const localPass = localStorage.getItem(PASSCODE_KEY);
-  if (localPass) return localPass;
-  const cookiePass = getCookieValue(PASSCODE_KEY);
-  return cookiePass || DEFAULT_PASSCODE;
-}
-
-function setCurrentPasscode(value, options = {}) {
-  const safeValue = normalizePasscode(value);
-  if (options.syncState !== false) {
-    ensureAdminConfig(state);
-    state.admin.passcode = safeValue;
-  }
-  localStorage.setItem(PASSCODE_KEY, safeValue);
-  document.cookie = `${PASSCODE_KEY}=${encodeURIComponent(
-    safeValue,
-  )}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
-}
-
-function setAdminLoggedIn(value) {
-  localStorage.setItem(ADMIN_AUTH_KEY, value ? "1" : "0");
-  if (value) {
-    document.cookie = `${ADMIN_AUTH_KEY}=1; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
-  } else {
-    document.cookie = `${ADMIN_AUTH_KEY}=0; path=/; max-age=0; SameSite=Lax`;
-  }
-}
-
-function isAdminLoggedIn() {
-  if (localStorage.getItem(ADMIN_AUTH_KEY) === "1") return true;
-  return document.cookie.split("; ").some((item) => item === `${ADMIN_AUTH_KEY}=1`);
-}
-
-function loadPublishSettings() {
-  try {
-    const raw = localStorage.getItem(PUBLISH_SETTINGS_KEY);
-    if (!raw) return deepClone(DEFAULT_PUBLISH_SETTINGS);
-    const parsed = JSON.parse(raw);
-    return { ...deepClone(DEFAULT_PUBLISH_SETTINGS), ...(parsed || {}) };
-  } catch (error) {
-    return deepClone(DEFAULT_PUBLISH_SETTINGS);
-  }
-}
-
-function persistPublishSettings() {
-  localStorage.setItem(PUBLISH_SETTINGS_KEY, JSON.stringify(publishSettings));
-}
-
-function loadUploadSettings() {
-  try {
-    const raw = localStorage.getItem(UPLOAD_SETTINGS_KEY);
-    if (!raw) return deepClone(DEFAULT_UPLOAD_SETTINGS);
-    const parsed = JSON.parse(raw);
-    return { ...deepClone(DEFAULT_UPLOAD_SETTINGS), ...(parsed || {}) };
-  } catch (error) {
-    return deepClone(DEFAULT_UPLOAD_SETTINGS);
-  }
-}
-
-function persistUploadSettings() {
-  localStorage.setItem(UPLOAD_SETTINGS_KEY, JSON.stringify(uploadSettings));
-}
-
-function collectPublishForm() {
-  uploadSettings.provider = (getInputValue("upload-provider", "github") || "github").trim();
-  uploadSettings.cloudflareAccountId = getInputValue("cf-account-id", "").trim();
-  uploadSettings.cloudflareImagesToken = getInputValue("cf-images-token", "").trim();
-  persistUploadSettings();
-
-  publishSettings.owner = getInputValue("gh-owner", publishSettings.owner || "").trim();
-  publishSettings.repo = getInputValue("gh-repo", publishSettings.repo || "").trim();
-  publishSettings.branch = getInputValue("gh-branch", publishSettings.branch || "main").trim() || "main";
-  publishSettings.token = getInputValue("gh-token", publishSettings.token || "").trim();
-  publishSettings.commitMessage =
-    getInputValue("gh-commit-message", publishSettings.commitMessage || "").trim() ||
-    DEFAULT_PUBLISH_SETTINGS.commitMessage;
-  persistPublishSettings();
-}
-
-function applyPublishForm() {
-  setInputValue("upload-provider", uploadSettings.provider || "github");
-  setInputValue("cf-account-id", uploadSettings.cloudflareAccountId || "");
-  setInputValue("cf-images-token", uploadSettings.cloudflareImagesToken || "");
-
-  setInputValue("gh-owner", publishSettings.owner || "");
-  setInputValue("gh-repo", publishSettings.repo || "");
-  setInputValue("gh-branch", publishSettings.branch || "main");
-  setInputValue("gh-token", publishSettings.token || "");
-  setInputValue(
-    "gh-commit-message",
-    publishSettings.commitMessage || DEFAULT_PUBLISH_SETTINGS.commitMessage,
-  );
-  updateUploadProviderUI();
-}
-
-function updateUploadProviderUI() {
-  const provider = getInputValue("upload-provider", "github") || "github";
-  const uploadBtn = byId("r-upload-btn");
-  const cfAccountInput = byId("cf-account-id");
-  const cfTokenInput = byId("cf-images-token");
-  if (uploadBtn) {
-    uploadBtn.textContent =
-      provider === "cloudflare-images" ? "上传到 Cloudflare 并加入当前路线" : "上传到仓库并加入当前路线";
-  }
-  if (cfAccountInput) cfAccountInput.disabled = provider !== "cloudflare-images";
-  if (cfTokenInput) cfTokenInput.disabled = provider !== "cloudflare-images";
-}
-
-function collectSiteForm() {
-  state.site.brandText = getInputValue("f-brand-text", state.site.brandText || "").trim();
-  state.site.heroTitle = getInputValue("f-hero-title", state.site.heroTitle || "").trim();
-  state.site.heroDesc = getInputValue("f-hero-desc", state.site.heroDesc || "").trim();
-  state.site.routesTitle = getInputValue("f-routes-title", state.site.routesTitle || "").trim();
-  state.site.galleryTitle = getInputValue("f-gallery-title", state.site.galleryTitle || "").trim();
-  state.site.aboutTitle = getInputValue("f-about-title", state.site.aboutTitle || "").trim();
-  state.site.aboutText = getInputValue("f-about-text", state.site.aboutText || "").trim();
-}
-
-function applySiteForm() {
-  setInputValue("f-brand-text", state.site.brandText || "");
-  setInputValue("f-hero-title", state.site.heroTitle || "");
-  setInputValue("f-hero-desc", state.site.heroDesc || "");
-  setInputValue("f-routes-title", state.site.routesTitle || "");
-  setInputValue("f-gallery-title", state.site.galleryTitle || "");
-  setInputValue("f-about-title", state.site.aboutTitle || "");
-  setInputValue("f-about-text", state.site.aboutText || "");
-}
-
-function collectHeroSettings() {
-  state.gallery = state.gallery || {};
-  state.hero.intervalMs = Number(getInputValue("f-hero-interval", "7")) * 1000;
-  state.hero.transitionMs = Number(getInputValue("f-hero-transition", "1150"));
-  state.hero.playMode = getInputValue("f-hero-play-mode", state.hero.playMode || "shuffle-once");
-  state.hero.showRouteLabel = getCheckedValue("f-show-route-label", state.hero.showRouteLabel !== false);
-
-  state.gallery.cloudflareResponsive = getCheckedValue(
-    "f-cf-responsive",
-    state.gallery.cloudflareResponsive === true,
-  );
-  state.gallery.cloudflareQuality = Number(getInputValue("f-cf-quality", "88"));
-  state.gallery.cloudflareSharpen = Number(getInputValue("f-cf-sharpen", "1"));
-  state.gallery.cloudflareHeroMaxWidth = Number(getInputValue("f-cf-hero-maxw", "1920"));
-  state.gallery.cloudflareGalleryMaxWidth = Number(getInputValue("f-cf-gallery-maxw", "1400"));
-  state.gallery.cloudflareLightboxMaxWidth = Number(getInputValue("f-cf-lightbox-maxw", "2600"));
-}
-
-function applyHeroSettings() {
-  state.gallery = state.gallery || {};
-  setInputValue("f-hero-interval", String(Math.round((state.hero.intervalMs || 7000) / 1000)));
-  setInputValue("f-hero-transition", String(state.hero.transitionMs || 1150));
-  setInputValue("f-hero-play-mode", state.hero.playMode || "shuffle-once");
-  const routeLabelNode = byId("f-show-route-label");
-  if (routeLabelNode) routeLabelNode.checked = state.hero.showRouteLabel !== false;
-
-  const cfResponsiveNode = byId("f-cf-responsive");
-  if (cfResponsiveNode) cfResponsiveNode.checked = state.gallery.cloudflareResponsive === true;
-  setInputValue(
-    "f-cf-quality",
-    String(Number.isFinite(state.gallery.cloudflareQuality) ? state.gallery.cloudflareQuality : 88),
-  );
-  setInputValue(
-    "f-cf-sharpen",
-    String(Number.isFinite(state.gallery.cloudflareSharpen) ? state.gallery.cloudflareSharpen : 1),
-  );
-  setInputValue(
-    "f-cf-hero-maxw",
-    String(
-      Number.isFinite(state.gallery.cloudflareHeroMaxWidth)
-        ? state.gallery.cloudflareHeroMaxWidth
-        : 1920,
-    ),
-  );
-  setInputValue(
-    "f-cf-gallery-maxw",
-    String(
-      Number.isFinite(state.gallery.cloudflareGalleryMaxWidth)
-        ? state.gallery.cloudflareGalleryMaxWidth
-        : 1400,
-    ),
-  );
-  setInputValue(
-    "f-cf-lightbox-maxw",
-    String(
-      Number.isFinite(state.gallery.cloudflareLightboxMaxWidth)
-        ? state.gallery.cloudflareLightboxMaxWidth
-        : 2600,
-    ),
-  );
-}
-
-function refreshOverview() {
-  const photoCount = state.routes.reduce(
-    (sum, route) => sum + (Array.isArray(route.photos) ? route.photos.length : 0),
-    0,
-  );
-  byId("stat-routes").textContent = String(state.routes.length);
-  byId("stat-photos").textContent = String(photoCount);
-  byId("stat-slides").textContent = String((state.hero.slides || []).length);
-}
-
-function routeNameMap() {
-  return Object.fromEntries(state.routes.map((route) => [route.id, route.name]));
-}
-
-function renderSlidesTable() {
-  const container = byId("slides-table");
-  const nameMap = routeNameMap();
-  const slides = state.hero.slides || [];
-
-  if (slides.length === 0) {
-    container.innerHTML = "<p>暂无轮播图。</p>";
-    return;
-  }
-
-  container.innerHTML = `
-    <table>
-      <thead>
-        <tr>
-          <th>预览</th>
-          <th>路线</th>
-          <th>图片路径</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${slides
-          .map(
-            (slide, index) => `
-          <tr>
-            <td><img src="${toAssetSrc(slide.src)}" alt="slide-${index}" /></td>
-            <td>${nameMap[slide.routeId] || slide.routeName || "-"}</td>
-            <td>${slide.src}</td>
-            <td>
-              <button class="btn" data-slide-action="up" data-index="${index}">上移</button>
-              <button class="btn" data-slide-action="down" data-index="${index}">下移</button>
-              <button class="btn danger" data-slide-action="remove" data-index="${index}">删除</button>
-            </td>
-          </tr>
-        `,
-          )
-          .join("")}
-      </tbody>
-    </table>
-  `;
-}
-
-function populateSlideRouteOptions() {
-  const select = byId("slide-route");
-  select.innerHTML = state.routes
-    .map((route) => `<option value="${route.id}">${route.name}</option>`)
-    .join("");
-  if (state.routes[0]) {
-    select.value = state.routes[0].id;
-  }
-  populateSlidePhotoOptions();
-}
-
-function populateSlidePhotoOptions() {
-  const routeId = byId("slide-route").value;
-  const route = state.routes.find((item) => item.id === routeId);
-  const photoSelect = byId("slide-photo");
-  if (!route) {
-    photoSelect.innerHTML = "";
-    return;
-  }
-  photoSelect.innerHTML = (route.photos || [])
-    .map((photo) => `<option value="${photo}">${photo}</option>`)
-    .join("");
-}
-
-function addSlide() {
-  const routeId = byId("slide-route").value;
-  const src = byId("slide-photo").value;
-  if (!routeId || !src) return;
-  state.hero.slides.push({ src, routeId });
-  renderSlidesTable();
-  refreshOverview();
-}
-
-function handleSlideTableClick(event) {
-  const target = event.target;
-  if (!(target instanceof HTMLButtonElement)) return;
-  const action = target.getAttribute("data-slide-action");
-  const index = Number(target.getAttribute("data-index"));
-  if (Number.isNaN(index)) return;
-
-  if (action === "remove") {
-    state.hero.slides.splice(index, 1);
-  } else if (action === "up" && index > 0) {
-    [state.hero.slides[index - 1], state.hero.slides[index]] = [
-      state.hero.slides[index],
-      state.hero.slides[index - 1],
-    ];
-  } else if (action === "down" && index < state.hero.slides.length - 1) {
-    [state.hero.slides[index + 1], state.hero.slides[index]] = [
-      state.hero.slides[index],
-      state.hero.slides[index + 1],
-    ];
-  }
-
-  renderSlidesTable();
-  refreshOverview();
+function getActiveRoute() {
+  return state.routes.find((route) => route.id === activeRouteId) || null;
 }
 
 function populateRoutePicker() {
   const picker = byId("route-picker");
-  picker.innerHTML = state.routes
-    .map((route) => `<option value="${route.id}">${route.name}</option>`)
-    .join("");
+  if (!picker) return;
+
+  picker.innerHTML = state.routes.map((route) => `<option value="${route.id}">${route.name}</option>`).join("");
   if (!state.routes.some((route) => route.id === activeRouteId)) {
     activeRouteId = state.routes[0] ? state.routes[0].id : "";
   }
   picker.value = activeRouteId;
 }
 
-function fillRouteForm(routeId) {
-  const route = state.routes.find((item) => item.id === routeId);
-  if (!route) return;
-  activeRouteId = route.id;
-  route.photos = sanitizePhotoList(route.photos);
-  byId("r-name").value = route.name || "";
-  byId("r-location").value = route.location || "";
-  byId("r-effort").value = route.effort || "";
-  byId("r-cover").value = route.cover || "";
-  byId("r-highlight").value = route.highlight || "";
-  syncRoutePhotosTextarea(route);
-  renderRoutePhotoList(route);
-}
-
-function getActiveRoute() {
-  return state.routes.find((item) => item.id === activeRouteId) || null;
-}
-
-function syncRoutePhotosTextarea(route) {
-  byId("r-photos").value = photosToTextareaLines(route.photos).join("\n");
-}
-
-function renderRoutePhotoList(route) {
+function renderRoutePhotoList() {
+  const route = getActiveRoute();
   const container = byId("r-photo-list");
+  const countNode = byId("photo-count");
   if (!container) return;
 
   if (!route || !Array.isArray(route.photos) || route.photos.length === 0) {
-    container.innerHTML = "<p>当前路线暂无照片。</p>";
+    container.innerHTML = '<p class="message">当前路线暂无图片</p>';
+    if (countNode) countNode.textContent = "0 张";
     return;
   }
 
-  container.innerHTML = `
-    <table>
-      <thead>
-        <tr>
-          <th>预览</th>
-          <th>图片名称</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${route.photos
-          .map(
-            (photo, index) => `
-          <tr>
-            <td><img src="${toAssetSrc(photo)}" alt="route-photo-${index}" /></td>
-            <td>${getPhotoLabel(photo, index)}</td>
-            <td><button class="btn danger" data-route-photo-action="remove" data-index="${index}">删除</button></td>
-          </tr>
-        `,
-          )
-          .join("")}
-      </tbody>
-    </table>
-  `;
-}
+  if (countNode) countNode.textContent = `${route.photos.length} 张`;
 
-async function handleRoutePhotoListClick(event) {
-  const target = event.target;
-  if (!(target instanceof HTMLButtonElement)) return;
-  const action = target.getAttribute("data-route-photo-action");
-  const index = Number(target.getAttribute("data-index"));
-  if (action !== "remove" || Number.isNaN(index)) return;
-
-  const route = getActiveRoute();
-  if (!route) return;
-  const photo = route.photos[index];
-  if (!photo) return;
-
-  let deletedRemote = "";
-  if (isRepoManagedUploadPhoto(photo)) {
-    const alsoDeleteRemote = window.confirm(
-      "是否同时删除 GitHub 仓库中的原图文件？\n确定：同时删除仓库文件\n取消：仅从当前路线移除",
-    );
-    if (alsoDeleteRemote) {
-      const refs = countAssetReferences(photo);
-      if (refs > 1) {
-        showMessage(
-          "save-msg",
-          "该图片仍被其他路线/轮播/封面引用，已仅从当前路线移除，未删除仓库文件。",
-          true,
-        );
-      } else {
-        try {
-          showMessage("save-msg", `正在删除仓库文件：${extractFileName(photo)}...`);
-          const deleted = await deleteUploadedPhotoFromGitHub(photo);
-          if (deleted) deletedRemote = "github";
-        } catch (error) {
-          const removeOnly = window.confirm(
-            `仓库文件删除失败：${error.message || "未知错误"}\n是否仅从当前路线移除该图片？`,
-          );
-          if (!removeOnly) return;
-        }
-      }
-    }
-  } else if (isCloudflareManagedUploadPhoto(photo)) {
-    const alsoDeleteRemote = window.confirm(
-      "是否同时删除 Cloudflare Images 中的原图文件？\n确定：同时删除云端文件\n取消：仅从当前路线移除",
-    );
-    if (alsoDeleteRemote) {
-      const refs = countAssetReferences(photo);
-      if (refs > 1) {
-        showMessage(
-          "save-msg",
-          "该图片仍被其他路线/轮播/封面引用，已仅从当前路线移除，未删除 Cloudflare Images 文件。",
-          true,
-        );
-      } else {
-        try {
-          showMessage("save-msg", `正在删除 Cloudflare 图片：${extractFileName(photo)}...`);
-          const deleted = await deleteUploadedPhotoFromCloudflare(photo);
-          if (deleted) deletedRemote = "cloudflare";
-        } catch (error) {
-          const removeOnly = window.confirm(
-            `Cloudflare 图片删除失败：${error.message || "未知错误"}\n是否仅从当前路线移除该图片？`,
-          );
-          if (!removeOnly) return;
-        }
-      }
-    }
-  }
-
-  route.photos.splice(index, 1);
-  syncRoutePhotosTextarea(route);
-  renderRoutePhotoList(route);
-  populateSlidePhotoOptions();
-  refreshOverview();
-  if (deletedRemote === "github") {
-    showMessage("save-msg", "已从当前路线移除，并删除仓库中的原图文件。");
-  } else if (deletedRemote === "cloudflare") {
-    showMessage("save-msg", "已从当前路线移除，并删除 Cloudflare Images 中的原图文件。");
-  }
-}
-
-function saveCurrentRoute(showNotice = true) {
-  const route = state.routes.find((item) => item.id === activeRouteId);
-  if (!route) {
-    showMessage("save-msg", "未找到当前路线，无法保存。", true);
-    return;
-  }
-
-  route.name = getInputValue("r-name", route.name || "").trim();
-  route.location = getInputValue("r-location", route.location || "").trim();
-  route.effort = getInputValue("r-effort", route.effort || "").trim();
-  route.cover = getInputValue("r-cover", route.cover || "").trim();
-  route.highlight = getInputValue("r-highlight", route.highlight || "").trim();
-  const manualPhotos = parseTextareaPhotos(getInputValue("r-photos", ""));
-  route.photos = sanitizePhotoList([...manualPhotos, ...(route.photos || [])]);
-
-  populateRoutePicker();
-  fillRouteForm(route.id);
-  populateSlideRouteOptions();
-  renderSlidesTable();
-  refreshOverview();
-  if (showNotice) {
-    showMessage("save-msg", `已保存路线：${route.name}`);
-  }
-}
-
-function toRouteId(name) {
-  const base = name
-    .toLowerCase()
-    .replace(/[^a-z0-9\\u4e00-\\u9fa5]+/g, "-")
-    .replace(/(^-|-$)/g, "") || `route-${Date.now()}`;
-  let id = base;
-  let i = 1;
-  while (state.routes.some((route) => route.id === id)) {
-    id = `${base}-${i}`;
-    i += 1;
-  }
-  return id;
-}
-
-function createRoute() {
-  const name = window.prompt("输入新路线名称", "新路线");
-  if (!name) return;
-  const id = toRouteId(name);
-  const newRoute = {
-    id,
-    name,
-    location: "",
-    effort: "",
-    highlight: "",
-    cover: "",
-    photos: [],
-  };
-  state.routes.push(newRoute);
-  activeRouteId = id;
-  populateRoutePicker();
-  fillRouteForm(id);
-  populateSlideRouteOptions();
-  refreshOverview();
-}
-
-function deleteRoute() {
-  if (!activeRouteId) return;
-  const route = state.routes.find((item) => item.id === activeRouteId);
-  if (!route) return;
-  const confirmed = window.confirm(`确认删除路线“${route.name}”？`);
-  if (!confirmed) return;
-
-  state.routes = state.routes.filter((item) => item.id !== activeRouteId);
-  state.hero.slides = (state.hero.slides || []).filter(
-    (slide) => slide.routeId !== activeRouteId,
-  );
-
-  activeRouteId = state.routes[0] ? state.routes[0].id : "";
-  populateRoutePicker();
-  if (activeRouteId) fillRouteForm(activeRouteId);
-  populateSlideRouteOptions();
-  renderSlidesTable();
-  refreshOverview();
-}
-
-async function getImageSize(src) {
-  if (imageOrientationCache.has(src)) return imageOrientationCache.get(src);
-  const value = await new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
-    img.onerror = () => resolve(null);
-    img.src = toAssetSrc(src);
-  });
-  imageOrientationCache.set(src, value);
-  return value;
-}
-
-async function buildLandscapeSlides(count = 20) {
-  const candidates = state.routes.flatMap((route) =>
-    (route.photos || []).map((src) => ({ src, routeId: route.id })),
-  );
-
-  const checks = await Promise.all(
-    candidates.map(async (item) => {
-      const size = await getImageSize(item.src);
-      if (!size) return null;
-      return size.width >= size.height ? item : null;
-    }),
-  );
-
-  const landscape = checks.filter(Boolean);
-  if (landscape.length === 0) {
-    showMessage("save-msg", "没有找到可用的横构图照片。", true);
-    return;
-  }
-
-  for (let i = landscape.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [landscape[i], landscape[j]] = [landscape[j], landscape[i]];
-  }
-
-  state.hero.slides = landscape.slice(0, count);
-  renderSlidesTable();
-  refreshOverview();
-  showMessage("save-msg", `已生成 ${state.hero.slides.length} 张横构图轮播。`);
-}
-
-function saveAll() {
-  collectSiteForm();
-  collectHeroSettings();
-  collectPublishForm();
-  saveCurrentRoute(false);
-  try {
-    storage.saveConfig(state);
-    showMessage("save-msg", "已保存全部配置。刷新前台页面即可生效。");
-  } catch (error) {
-    showMessage("save-msg", "保存失败：浏览器存储空间可能不足，请先删除部分本地上传图片。", true);
-  }
-}
-
-function encodeUtf8Base64(content) {
-  const bytes = new TextEncoder().encode(content);
-  let binary = "";
-  bytes.forEach((value) => {
-    binary += String.fromCharCode(value);
-  });
-  return btoa(binary);
+  container.innerHTML = route.photos
+    .map(
+      (photo, index) => `
+      <article class="photo-item">
+        <img src="${toAssetSrc(photo)}" alt="photo-${index}" />
+        <div class="photo-meta">
+          <p class="photo-name" title="${extractFileName(photo)}">${extractFileName(photo)}</p>
+          <div class="photo-actions">
+            <button class="btn btn-danger" data-route-photo-action="remove" data-index="${index}">删除</button>
+          </div>
+        </div>
+      </article>
+    `,
+    )
+    .join("");
 }
 
 function encodeBinaryBase64(bytes) {
@@ -839,89 +254,123 @@ function githubHeaders(token) {
   };
 }
 
-function validateGitHubPublishSettings() {
-  collectPublishForm();
-  if (!publishSettings.owner || !publishSettings.repo || !publishSettings.branch) {
-    throw new Error("请先完整填写 GitHub 仓库配置。");
-  }
-  if (!publishSettings.token) {
-    throw new Error("请先填写 GitHub Token。");
-  }
-}
-
 function cloudflareHeaders(token) {
   return {
     Authorization: `Bearer ${token}`,
   };
 }
 
-function validateCloudflareUploadSettings() {
-  collectPublishForm();
+function loadPublishSettings() {
+  try {
+    const raw = localStorage.getItem(PUBLISH_SETTINGS_KEY);
+    if (!raw) return deepClone(DEFAULT_PUBLISH_SETTINGS);
+    return { ...deepClone(DEFAULT_PUBLISH_SETTINGS), ...(JSON.parse(raw) || {}) };
+  } catch (error) {
+    return deepClone(DEFAULT_PUBLISH_SETTINGS);
+  }
+}
+
+function persistPublishSettings() {
+  localStorage.setItem(PUBLISH_SETTINGS_KEY, JSON.stringify(publishSettings));
+}
+
+function loadUploadSettings() {
+  try {
+    const raw = localStorage.getItem(UPLOAD_SETTINGS_KEY);
+    if (!raw) return deepClone(DEFAULT_UPLOAD_SETTINGS);
+    return { ...deepClone(DEFAULT_UPLOAD_SETTINGS), ...(JSON.parse(raw) || {}) };
+  } catch (error) {
+    return deepClone(DEFAULT_UPLOAD_SETTINGS);
+  }
+}
+
+function persistUploadSettings() {
+  localStorage.setItem(UPLOAD_SETTINGS_KEY, JSON.stringify(uploadSettings));
+}
+
+function collectProviderSettings() {
+  uploadSettings.provider = (getInputValue("upload-provider", "github") || "github").trim();
+  uploadSettings.cloudflareAccountId = getInputValue("cf-account-id", "").trim();
+  uploadSettings.cloudflareImagesToken = getInputValue("cf-images-token", "").trim();
+  publishSettings.owner = getInputValue("gh-owner", "").trim();
+  publishSettings.repo = getInputValue("gh-repo", "").trim();
+  publishSettings.branch = getInputValue("gh-branch", "main").trim() || "main";
+  publishSettings.token = getInputValue("gh-token", "").trim();
+  persistUploadSettings();
+  persistPublishSettings();
+}
+
+function applyProviderSettings() {
+  setInputValue("upload-provider", uploadSettings.provider || "github");
+  setInputValue("cf-account-id", uploadSettings.cloudflareAccountId || "");
+  setInputValue("cf-images-token", uploadSettings.cloudflareImagesToken || "");
+  setInputValue("gh-owner", publishSettings.owner || "");
+  setInputValue("gh-repo", publishSettings.repo || "");
+  setInputValue("gh-branch", publishSettings.branch || "main");
+  setInputValue("gh-token", publishSettings.token || "");
+  updateUploadProviderUI();
+}
+
+function updateUploadProviderUI() {
+  const provider = (getInputValue("upload-provider", "github") || "github").trim();
+  const githubFields = byId("github-fields");
+  const cfFields = byId("cf-fields");
+  if (provider === "cloudflare-images") {
+    if (cfFields) cfFields.classList.remove("hidden");
+    if (githubFields) githubFields.classList.add("hidden");
+  } else {
+    if (githubFields) githubFields.classList.remove("hidden");
+    if (cfFields) cfFields.classList.add("hidden");
+  }
+}
+
+function validateGitHubSettings() {
+  collectProviderSettings();
+  if (!publishSettings.owner || !publishSettings.repo || !publishSettings.branch) {
+    throw new Error("请先填写 GitHub Owner/Repo/Branch");
+  }
+  if (!publishSettings.token) {
+    throw new Error("请先填写 GitHub Token");
+  }
+}
+
+function validateCloudflareSettings() {
+  collectProviderSettings();
   if (!uploadSettings.cloudflareAccountId) {
-    throw new Error("请先填写 Cloudflare Account ID。");
+    throw new Error("请先填写 Cloudflare Account ID");
   }
   if (!uploadSettings.cloudflareImagesToken) {
-    throw new Error("请先填写 Cloudflare Images API Token。");
+    throw new Error("请先填写 Cloudflare Images Token");
   }
 }
 
-function getCloudflareImageId(photoPath) {
-  const fromQuery = getUrlParam(photoPath, "cfid");
-  if (fromQuery) return fromQuery;
-
-  try {
-    const text = String(photoPath || "").trim();
-    const url = new URL(text, window.location.origin);
-    const parts = url.pathname.split("/").filter(Boolean);
-    if (url.hostname.includes(CLOUDFLARE_IMAGES_HOST) && parts.length >= 3) {
-      return parts[1] || "";
-    }
-  } catch (error) {
-    return "";
-  }
-  return "";
-}
-
-function buildCloudflarePhotoUrl(variantUrl, fileName, imageId) {
-  const separator = variantUrl.includes("?") ? "&" : "?";
-  return `${variantUrl}${separator}n=${encodeURIComponent(extractFileName(fileName))}&cfid=${encodeURIComponent(
-    imageId,
-  )}`;
-}
-
-async function putRepoFile({ owner, repo, branch, token, path, base64Content, message, sha = "" }) {
-  const payload = {
-    message,
-    content: base64Content,
-    branch,
-  };
-  if (sha) payload.sha = sha;
-
+async function putRepoFile({ owner, repo, branch, token, path, base64Content, message }) {
   const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodeGitHubPath(path)}`;
   const response = await fetch(url, {
     method: "PUT",
     headers: githubHeaders(token),
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      message,
+      content: base64Content,
+      branch,
+    }),
   });
 
   if (!response.ok) {
-    const result = await response.json().catch(() => ({}));
-    throw new Error(result.message || "上传文件到 GitHub 失败。");
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.message || "上传到 GitHub 失败");
   }
-  return response.json().catch(() => ({}));
 }
 
 async function getRepoFileShaByPath({ owner, repo, branch, token, path }) {
   const ref = encodeURIComponent(branch);
   const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodeGitHubPath(path)}?ref=${ref}`;
-  const response = await fetch(url, {
-    headers: githubHeaders(token),
-  });
+  const response = await fetch(url, { headers: githubHeaders(token) });
 
   if (response.status === 404) return "";
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    throw new Error(payload.message || "读取仓库文件失败。");
+    throw new Error(payload.message || "读取仓库文件失败");
   }
 
   const payload = await response.json();
@@ -942,110 +391,8 @@ async function deleteRepoFile({ owner, repo, branch, token, path, sha, message }
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    throw new Error(payload.message || "删除仓库文件失败。");
+    throw new Error(payload.message || "删除 GitHub 文件失败");
   }
-  return response.json().catch(() => ({}));
-}
-
-async function getConfigFileSha(settings) {
-  const configPath = (storage && storage.REMOTE_CONFIG_PATH) || "site-config.json";
-  return getRepoFileShaByPath({
-    owner: settings.owner,
-    repo: settings.repo,
-    branch: settings.branch,
-    token: settings.token,
-    path: configPath,
-  });
-}
-
-async function publishToGitHub() {
-  collectSiteForm();
-  collectHeroSettings();
-  collectPublishForm();
-  saveCurrentRoute(false);
-
-  if (!publishSettings.owner || !publishSettings.repo || !publishSettings.branch) {
-    showMessage("save-msg", "请先完整填写 GitHub 仓库配置。", true);
-    return;
-  }
-  if (!publishSettings.token) {
-    showMessage("save-msg", "请先填写 GitHub Token。", true);
-    return;
-  }
-
-  try {
-    storage.saveConfig(state);
-  } catch (error) {
-    showMessage("save-msg", "本地保存失败，请先减少上传图片数量后重试。", true);
-    return;
-  }
-
-  showMessage("save-msg", "正在推送到 GitHub...");
-
-  try {
-    const sha = await getConfigFileSha(publishSettings);
-    const content = `${JSON.stringify(state, null, 2)}\n`;
-    const payload = {
-      message: publishSettings.commitMessage || DEFAULT_PUBLISH_SETTINGS.commitMessage,
-      content: encodeUtf8Base64(content),
-      branch: publishSettings.branch,
-    };
-    if (sha) payload.sha = sha;
-
-    const configPath = (storage && storage.REMOTE_CONFIG_PATH) || "site-config.json";
-    const path = encodeGitHubPath(configPath);
-    const url = `https://api.github.com/repos/${encodeURIComponent(publishSettings.owner)}/${encodeURIComponent(publishSettings.repo)}/contents/${path}`;
-    const response = await fetch(url, {
-      method: "PUT",
-      headers: githubHeaders(publishSettings.token),
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const result = await response.json().catch(() => ({}));
-      throw new Error(result.message || "推送失败，请检查 Token 与仓库权限。");
-    }
-
-    showMessage("save-msg", "已推送到 GitHub，Cloudflare Pages 将自动开始部署。");
-  } catch (error) {
-    showMessage("save-msg", `推送失败：${error.message || "未知错误"}`, true);
-  }
-}
-
-function exportConfig() {
-  const blob = new Blob([JSON.stringify(state, null, 2)], {
-    type: "application/json",
-  });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `tt-site-config-${Date.now()}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function importConfigFromFile(file) {
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      const parsed = JSON.parse(String(reader.result || "{}"));
-      storage.saveConfig(parsed);
-      state = storage.getConfig();
-      hydrateAll();
-      showMessage("save-msg", "配置导入成功。");
-    } catch (error) {
-      showMessage("save-msg", "导入失败：JSON 格式不正确。", true);
-    }
-  };
-  reader.readAsText(file);
-}
-
-function resetToDefault() {
-  const confirmed = window.confirm("确认恢复默认配置？当前自定义会被清空。");
-  if (!confirmed) return;
-  state = storage.resetConfig();
-  hydrateAll();
-  showMessage("save-msg", "已恢复默认配置。");
 }
 
 function loadImageFromUrl(url) {
@@ -1081,14 +428,7 @@ async function compressImageFileToBlob(file, maxEdge = 4096, quality = 0.92) {
     canvas.toBlob((value) => resolve(value), "image/jpeg", quality);
   });
 
-  if (!blob) {
-    const fallback = canvas.toDataURL("image/jpeg", quality);
-    const commaIndex = fallback.indexOf(",");
-    if (commaIndex === -1) throw new Error("encode-failed");
-    const fallbackBase64 = fallback.slice(commaIndex + 1);
-    const fallbackBinary = Uint8Array.from(atob(fallbackBase64), (char) => char.charCodeAt(0));
-    return new Blob([fallbackBinary], { type: "image/jpeg" });
-  }
+  if (!blob) throw new Error("encode-failed");
   return blob;
 }
 
@@ -1099,7 +439,7 @@ async function compressImageFileToBase64(file, maxEdge = 4096, quality = 0.92) {
 }
 
 async function uploadRoutePhotoToGitHub(route, file) {
-  validateGitHubPublishSettings();
+  validateGitHubSettings();
   const uploadPath = buildUploadAssetPath(route, file.name);
   const base64 = await compressImageFileToBase64(file, 4096, 0.92);
   await putRepoFile({
@@ -1109,29 +449,28 @@ async function uploadRoutePhotoToGitHub(route, file) {
     token: publishSettings.token,
     path: uploadPath,
     base64Content: base64,
-    message: `chore: upload photo ${extractFileName(file.name)} for ${route.name || route.id}`,
+    message: `chore: upload ${extractFileName(file.name)} for ${route.id}`,
   });
   return `./${uploadPath}`;
 }
 
+function buildCloudflarePhotoUrl(variantUrl, fileName, imageId) {
+  const separator = variantUrl.includes("?") ? "&" : "?";
+  return `${variantUrl}${separator}n=${encodeURIComponent(extractFileName(fileName))}&cfid=${encodeURIComponent(imageId)}`;
+}
+
 async function uploadRoutePhotoToCloudflareImages(route, file) {
-  validateCloudflareUploadSettings();
+  validateCloudflareSettings();
   const blob = await compressImageFileToBlob(file, 4096, 0.92);
 
   const form = new FormData();
   form.append("file", blob, `${normalizeUploadBaseName(file.name)}.jpg`);
   form.append(
     "metadata",
-    JSON.stringify({
-      routeId: route.id || "",
-      routeName: route.name || "",
-      sourceName: extractFileName(file.name),
-    }),
+    JSON.stringify({ routeId: route.id || "", routeName: route.name || "", sourceName: extractFileName(file.name) }),
   );
 
-  const url = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(
-    uploadSettings.cloudflareAccountId,
-  )}/images/v1`;
+  const url = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(uploadSettings.cloudflareAccountId)}/images/v1`;
   const response = await fetch(url, {
     method: "POST",
     headers: cloudflareHeaders(uploadSettings.cloudflareImagesToken),
@@ -1141,9 +480,7 @@ async function uploadRoutePhotoToCloudflareImages(route, file) {
   const payload = await response.json().catch(() => ({}));
   if (!response.ok || payload.success === false) {
     const errMsg =
-      (payload.errors && payload.errors[0] && payload.errors[0].message) ||
-      payload.message ||
-      "上传到 Cloudflare Images 失败。";
+      (payload.errors && payload.errors[0] && payload.errors[0].message) || payload.message || "上传到 Cloudflare 失败";
     throw new Error(errMsg);
   }
 
@@ -1152,7 +489,7 @@ async function uploadRoutePhotoToCloudflareImages(route, file) {
   const variants = Array.isArray(result.variants) ? result.variants : [];
   const variantUrl = variants[0] || "";
   if (!imageId || !variantUrl) {
-    throw new Error("Cloudflare Images 返回内容缺失（id/variant）。");
+    throw new Error("Cloudflare 返回内容缺失");
   }
 
   return buildCloudflarePhotoUrl(variantUrl, file.name, imageId);
@@ -1163,13 +500,13 @@ function countAssetReferences(path) {
   if (!normalized) return 0;
 
   let count = 0;
-  state.routes.forEach((route) => {
+  (state.routes || []).forEach((route) => {
     if (normalizeAssetPath(route.cover) === normalized) count += 1;
     (route.photos || []).forEach((photo) => {
       if (normalizeAssetPath(photo) === normalized) count += 1;
     });
   });
-  (state.hero.slides || []).forEach((slide) => {
+  ((state.hero && state.hero.slides) || []).forEach((slide) => {
     if (normalizeAssetPath(slide.src) === normalized) count += 1;
   });
 
@@ -1177,7 +514,7 @@ function countAssetReferences(path) {
 }
 
 async function deleteUploadedPhotoFromGitHub(photoPath) {
-  validateGitHubPublishSettings();
+  validateGitHubSettings();
   const repoPath = normalizeAssetPath(photoPath);
   const sha = await getRepoFileShaByPath({
     owner: publishSettings.owner,
@@ -1195,29 +532,42 @@ async function deleteUploadedPhotoFromGitHub(photoPath) {
     token: publishSettings.token,
     path: repoPath,
     sha,
-    message: `chore: remove uploaded photo ${extractFileName(repoPath)}`,
+    message: `chore: remove ${extractFileName(repoPath)}`,
   });
   return true;
 }
 
+function getCloudflareImageId(photoPath) {
+  const fromQuery = getUrlParam(photoPath, "cfid");
+  if (fromQuery) return fromQuery;
+
+  try {
+    const url = new URL(String(photoPath || "").trim(), window.location.origin);
+    const parts = url.pathname.split("/").filter(Boolean);
+    if (url.hostname.includes(CLOUDFLARE_IMAGES_HOST) && parts.length >= 3) {
+      return parts[1] || "";
+    }
+  } catch (error) {
+    return "";
+  }
+  return "";
+}
+
 async function deleteUploadedPhotoFromCloudflare(photoPath) {
-  validateCloudflareUploadSettings();
+  validateCloudflareSettings();
   const imageId = getCloudflareImageId(photoPath);
   if (!imageId) return false;
 
-  const url = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(
-    uploadSettings.cloudflareAccountId,
-  )}/images/v1/${encodeURIComponent(imageId)}`;
+  const url = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(uploadSettings.cloudflareAccountId)}/images/v1/${encodeURIComponent(imageId)}`;
   const response = await fetch(url, {
     method: "DELETE",
     headers: cloudflareHeaders(uploadSettings.cloudflareImagesToken),
   });
+
   const payload = await response.json().catch(() => ({}));
   if (!response.ok || payload.success === false) {
     const errMsg =
-      (payload.errors && payload.errors[0] && payload.errors[0].message) ||
-      payload.message ||
-      "删除 Cloudflare Images 失败。";
+      (payload.errors && payload.errors[0] && payload.errors[0].message) || payload.message || "删除 Cloudflare 图片失败";
     throw new Error(errMsg);
   }
   return true;
@@ -1227,26 +577,28 @@ async function uploadPhotosToCurrentRoute() {
   const route = getActiveRoute();
   const input = byId("r-upload-files");
   const uploadBtn = byId("r-upload-btn");
+
   if (!route || !input || !input.files || input.files.length === 0) {
-    showMessage("save-msg", "请先选择要上传的图片。", true);
+    showMessage("save-msg", "请先选择要上传的图片", true);
     return;
   }
 
-  collectPublishForm();
+  collectProviderSettings();
   const files = Array.from(input.files);
   const provider = (uploadSettings.provider || "github").trim();
+
   if (uploadBtn) uploadBtn.disabled = true;
   let successCount = 0;
   try {
     if (provider === "cloudflare-images") {
-      validateCloudflareUploadSettings();
+      validateCloudflareSettings();
     } else {
-      validateGitHubPublishSettings();
+      validateGitHubSettings();
     }
 
     for (let i = 0; i < files.length; i += 1) {
       const file = files[i];
-      showMessage("save-msg", `正在上传 ${i + 1}/${files.length}: ${extractFileName(file.name)}...`);
+      showMessage("save-msg", `上传中 ${i + 1}/${files.length}: ${extractFileName(file.name)}`);
       try {
         const uploadedPath =
           provider === "cloudflare-images"
@@ -1255,70 +607,89 @@ async function uploadPhotosToCurrentRoute() {
         route.photos.push(uploadedPath);
         successCount += 1;
       } catch (error) {
-        // Skip broken file and continue with remaining files
+        // Continue with remaining files.
       }
     }
   } catch (error) {
-    showMessage("save-msg", error.message || "上传前校验失败。", true);
+    showMessage("save-msg", error.message || "上传前校验失败", true);
     if (uploadBtn) uploadBtn.disabled = false;
     return;
   }
 
   route.photos = sanitizePhotoList(route.photos);
-  syncRoutePhotosTextarea(route);
-  renderRoutePhotoList(route);
-  fillRouteForm(route.id);
-  populateSlidePhotoOptions();
-  refreshOverview();
+  renderRoutePhotoList();
   input.value = "";
   if (uploadBtn) uploadBtn.disabled = false;
+
   if (successCount > 0) {
-    showMessage(
-      "save-msg",
-      provider === "cloudflare-images"
-        ? `已上传 ${successCount} 张到 Cloudflare Images 并加入当前路线。下一步请点“保存并推送到 GitHub”发布配置。`
-        : `已上传 ${successCount} 张到仓库并加入当前路线。下一步请点“保存并推送到 GitHub”发布配置。`,
-    );
+    showMessage("save-msg", `上传完成，共成功 ${successCount} 张，请点击“保存配置”`);
   } else {
-    showMessage(
-      "save-msg",
-      provider === "cloudflare-images"
-        ? "上传失败：请检查 Cloudflare Account ID、Images Token 或网络后重试。"
-        : "上传失败：请检查 GitHub Token 权限、网络，或重试。",
-      true,
-    );
+    showMessage("save-msg", "上传失败，请检查凭据或网络", true);
   }
 }
 
-function changePasscode() {
-  const oldPass = window.prompt("输入旧密码");
-  if (oldPass !== getCurrentPasscode()) {
-    showMessage("save-msg", "旧密码不正确。", true);
-    return;
+async function handleRoutePhotoListClick(event) {
+  const target = event.target;
+  if (!(target instanceof HTMLButtonElement)) return;
+
+  const action = target.getAttribute("data-route-photo-action");
+  const index = Number(target.getAttribute("data-index"));
+  if (action !== "remove" || Number.isNaN(index)) return;
+
+  const route = getActiveRoute();
+  if (!route) return;
+  const photo = route.photos[index];
+  if (!photo) return;
+
+  const confirmed = window.confirm(`确认删除图片：${extractFileName(photo)}？`);
+  if (!confirmed) return;
+
+  let deletedRemote = "";
+  try {
+    if (isRepoManagedUploadPhoto(photo) && window.confirm("是否同时删除 GitHub 仓库中的原图？")) {
+      const refs = countAssetReferences(photo);
+      if (refs > 1) {
+        showMessage("save-msg", "该图片仍被其他位置引用，已仅从当前路线移除", true);
+      } else {
+        const deleted = await deleteUploadedPhotoFromGitHub(photo);
+        if (deleted) deletedRemote = "github";
+      }
+    }
+
+    if (isCloudflareManagedUploadPhoto(photo) && window.confirm("是否同时删除 Cloudflare Images 中的原图？")) {
+      const refs = countAssetReferences(photo);
+      if (refs > 1) {
+        showMessage("save-msg", "该图片仍被其他位置引用，已仅从当前路线移除", true);
+      } else {
+        const deleted = await deleteUploadedPhotoFromCloudflare(photo);
+        if (deleted) deletedRemote = "cloudflare";
+      }
+    }
+  } catch (error) {
+    const removeOnly = window.confirm(`远端删除失败：${error.message || "未知错误"}\n是否继续只移除本地引用？`);
+    if (!removeOnly) return;
   }
-  const newPass = window.prompt("输入新密码（至少 4 位）");
-  if (!newPass || newPass.length < 4) {
-    showMessage("save-msg", "新密码格式不正确。", true);
-    return;
+
+  route.photos.splice(index, 1);
+  route.photos = sanitizePhotoList(route.photos);
+  renderRoutePhotoList();
+
+  if (deletedRemote) {
+    showMessage("save-msg", `已删除图片，并清理 ${deletedRemote} 远端文件`);
+  } else {
+    showMessage("save-msg", "已从当前路线移除图片");
   }
-  setCurrentPasscode(newPass);
+}
+
+function saveAll() {
+  collectProviderSettings();
+  sanitizeAllRoutes();
   try {
     storage.saveConfig(state);
+    showMessage("save-msg", "配置已保存到本地浏览器");
   } catch (error) {
-    // Keep passcode update even when local config write fails.
+    showMessage("save-msg", "保存失败，浏览器存储空间可能不足", true);
   }
-  showMessage("save-msg", "后台密码已更新。");
-}
-
-function hydrateAll() {
-  applySiteForm();
-  applyHeroSettings();
-  applyPublishForm();
-  populateRoutePicker();
-  if (activeRouteId) fillRouteForm(activeRouteId);
-  populateSlideRouteOptions();
-  renderSlidesTable();
-  refreshOverview();
 }
 
 async function refreshStateFromRuntime() {
@@ -1335,57 +706,30 @@ async function refreshStateFromRuntime() {
   }
 }
 
+function hydrateAll() {
+  applyProviderSettings();
+  populateRoutePicker();
+  renderRoutePhotoList();
+}
+
 function bindEvents() {
   const on = (id, eventName, handler) => {
     const node = byId(id);
-    if (!node) return false;
+    if (!node) return;
     node.addEventListener(eventName, handler);
-    return true;
   };
 
   on("upload-provider", "change", () => {
-    collectPublishForm();
+    collectProviderSettings();
     updateUploadProviderUI();
   });
-  on("slide-route", "change", populateSlidePhotoOptions);
-  on("add-slide-btn", "click", addSlide);
-  on("slides-table", "click", handleSlideTableClick);
-
   on("route-picker", "change", (event) => {
     activeRouteId = event.target.value;
-    fillRouteForm(activeRouteId);
+    renderRoutePhotoList();
   });
-  on("save-route-btn", "click", saveCurrentRoute);
-  on("new-route-btn", "click", createRoute);
-  on("delete-route-btn", "click", deleteRoute);
   on("r-upload-btn", "click", uploadPhotosToCurrentRoute);
   on("r-photo-list", "click", handleRoutePhotoListClick);
-  on("r-photos", "blur", () => {
-    const route = getActiveRoute();
-    if (!route) return;
-    const manualPhotos = parseTextareaPhotos(getInputValue("r-photos", ""));
-    route.photos = sanitizePhotoList([...manualPhotos, ...(route.photos || [])]);
-    syncRoutePhotosTextarea(route);
-  });
-
-  on("build-20-landscape", "click", async () => {
-    await buildLandscapeSlides(20);
-  });
-
   on("save-all-btn", "click", saveAll);
-  on("publish-github-btn", "click", publishToGitHub);
-  on("export-btn", "click", exportConfig);
-  on("import-btn", "click", () => {
-    const fileInput = byId("import-file");
-    if (fileInput) fileInput.click();
-  });
-  on("import-file", "change", (event) => {
-    const file = event.target.files && event.target.files[0];
-    if (file) importConfigFromFile(file);
-    event.target.value = "";
-  });
-  on("reset-btn", "click", resetToDefault);
-  on("change-passcode-btn", "click", changePasscode);
 }
 
 function setupLogin() {
@@ -1395,11 +739,10 @@ function setupLogin() {
     uploadSettings = loadUploadSettings();
     const panel = byId("admin-panel");
     const loginCard = byId("login-card");
-    const loginMsg = byId("login-msg");
     if (panel) panel.classList.remove("hidden");
     if (loginCard) loginCard.classList.add("hidden");
-    if (loginMsg) loginMsg.textContent = "";
     hydrateAll();
+    showMessage("login-msg", "");
   };
 
   const loginBtn = byId("login-btn");
@@ -1409,7 +752,7 @@ function setupLogin() {
       const pass = getInputValue("login-passcode", "");
       if (pass !== getCurrentPasscode()) {
         setAdminLoggedIn(false);
-        showMessage("login-msg", "密码错误。", true);
+        showMessage("login-msg", "密码错误", true);
         return;
       }
       setAdminLoggedIn(true);
