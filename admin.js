@@ -125,6 +125,14 @@ function toAssetSrc(path) {
   return encodeURI(path);
 }
 
+function escapeHtmlAttr(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 function getUrlParam(path, key) {
   try {
     const url = new URL(String(path || ""), window.location.origin);
@@ -175,6 +183,16 @@ function normalizeAssetPath(path) {
   return withoutQuery.replace(/^\.\/+/, "");
 }
 
+function buildGitHubRawAssetUrl(path) {
+  const repoPath = normalizeAssetPath(path);
+  if (!repoPath) return "";
+  if (!publishSettings.owner || !publishSettings.repo || !publishSettings.branch) return "";
+  const encoded = encodeGitHubPath(repoPath);
+  return `https://raw.githubusercontent.com/${encodeURIComponent(
+    publishSettings.owner,
+  )}/${encodeURIComponent(publishSettings.repo)}/${encodeURIComponent(publishSettings.branch)}/${encoded}`;
+}
+
 function isRepoManagedUploadPhoto(path) {
   return normalizeAssetPath(path).startsWith(REPO_UPLOAD_PREFIX);
 }
@@ -216,7 +234,7 @@ function renderRoutePhotoList() {
     .map(
       (photo, index) => `
       <article class="photo-item">
-        <img src="${toAssetSrc(photo)}" alt="photo-${index}" />
+        <img src="${toAssetSrc(photo)}" alt="photo-${index}" data-photo-src="${escapeHtmlAttr(photo)}" />
         <div class="photo-meta">
           <p class="photo-name" title="${extractFileName(photo)}">${extractFileName(photo)}</p>
           <div class="photo-actions">
@@ -227,6 +245,19 @@ function renderRoutePhotoList() {
     `,
     )
     .join("");
+
+  const images = container.querySelectorAll("img[data-photo-src]");
+  images.forEach((img) => {
+    img.addEventListener("error", () => {
+      if (img.dataset.fallbackApplied === "1") return;
+      const photoPath = img.getAttribute("data-photo-src") || "";
+      if (!isRepoManagedUploadPhoto(photoPath)) return;
+      const fallback = buildGitHubRawAssetUrl(photoPath);
+      if (!fallback) return;
+      img.dataset.fallbackApplied = "1";
+      img.src = fallback;
+    });
+  });
 }
 
 function encodeBinaryBase64(bytes) {
