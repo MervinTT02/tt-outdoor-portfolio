@@ -13,6 +13,7 @@ const DEFAULT_PUBLISH_SETTINGS = {
   branch: "main",
   token: "",
 };
+const DEFAULT_PUBLISH_COMMIT_MESSAGE = "chore: update site config from admin panel";
 
 const DEFAULT_UPLOAD_SETTINGS = {
   provider: "github",
@@ -238,6 +239,11 @@ function encodeBinaryBase64(bytes) {
   return btoa(binary);
 }
 
+function encodeUtf8Base64(content) {
+  const bytes = new TextEncoder().encode(content);
+  return encodeBinaryBase64(bytes);
+}
+
 function encodeGitHubPath(path) {
   return String(path || "")
     .split("/")
@@ -344,16 +350,19 @@ function validateCloudflareSettings() {
   }
 }
 
-async function putRepoFile({ owner, repo, branch, token, path, base64Content, message }) {
+async function putRepoFile({ owner, repo, branch, token, path, base64Content, message, sha = "" }) {
+  const payload = {
+    message,
+    content: base64Content,
+    branch,
+  };
+  if (sha) payload.sha = sha;
+
   const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodeGitHubPath(path)}`;
   const response = await fetch(url, {
     method: "PUT",
     headers: githubHeaders(token),
-    body: JSON.stringify({
-      message,
-      content: base64Content,
-      branch,
-    }),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
@@ -622,7 +631,7 @@ async function uploadPhotosToCurrentRoute() {
   if (uploadBtn) uploadBtn.disabled = false;
 
   if (successCount > 0) {
-    showMessage("save-msg", `上传完成，共成功 ${successCount} 张，请点击“保存配置”`);
+    showMessage("save-msg", `上传完成，共成功 ${successCount} 张，请点击“发布到 GitHub”`);
   } else {
     showMessage("save-msg", "上传失败，请检查凭据或网络", true);
   }
@@ -692,6 +701,45 @@ function saveAll() {
   }
 }
 
+async function publishToGitHub() {
+  const publishBtn = byId("publish-github-btn");
+  if (publishBtn) publishBtn.disabled = true;
+
+  try {
+    collectProviderSettings();
+    sanitizeAllRoutes();
+    storage.saveConfig(state);
+    validateGitHubSettings();
+
+    const configPath = (storage && storage.REMOTE_CONFIG_PATH) || "site-config.json";
+    const sha = await getRepoFileShaByPath({
+      owner: publishSettings.owner,
+      repo: publishSettings.repo,
+      branch: publishSettings.branch,
+      token: publishSettings.token,
+      path: configPath,
+    });
+    const content = `${JSON.stringify(state, null, 2)}\n`;
+
+    showMessage("save-msg", "正在发布到 GitHub...");
+    await putRepoFile({
+      owner: publishSettings.owner,
+      repo: publishSettings.repo,
+      branch: publishSettings.branch,
+      token: publishSettings.token,
+      path: configPath,
+      base64Content: encodeUtf8Base64(content),
+      message: DEFAULT_PUBLISH_COMMIT_MESSAGE,
+      sha,
+    });
+    showMessage("save-msg", "发布成功，Cloudflare Pages 将自动开始部署");
+  } catch (error) {
+    showMessage("save-msg", `发布失败：${error.message || "未知错误"}`, true);
+  } finally {
+    if (publishBtn) publishBtn.disabled = false;
+  }
+}
+
 async function refreshStateFromRuntime() {
   if (storage && typeof storage.getRuntimeConfig === "function") {
     state = await storage.getRuntimeConfig({ preferRemote: true, includeLocal: true });
@@ -730,6 +778,7 @@ function bindEvents() {
   on("r-upload-btn", "click", uploadPhotosToCurrentRoute);
   on("r-photo-list", "click", handleRoutePhotoListClick);
   on("save-all-btn", "click", saveAll);
+  on("publish-github-btn", "click", publishToGitHub);
 }
 
 function setupLogin() {
