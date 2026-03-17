@@ -276,7 +276,6 @@ function fillRouteContentForm(route) {
 
 function populateCoverPhotoOptions(route) {
   const select = byId("r-cover-select");
-  const thumbs = byId("r-cover-thumbs");
   if (!select) return;
 
   const photos = sanitizePhotoList(route && Array.isArray(route.photos) ? route.photos : []);
@@ -309,52 +308,6 @@ function populateCoverPhotoOptions(route) {
   if (noChoice) {
     emptyOption.textContent = "当前路线暂无图片（先上传图片）";
   }
-
-  if (!thumbs) return;
-  thumbs.innerHTML = "";
-
-  const noneButton = document.createElement("button");
-  noneButton.type = "button";
-  noneButton.className = `cover-thumb-item${cover ? "" : " is-selected"}`;
-  noneButton.dataset.coverValue = "";
-  noneButton.innerHTML = '<div class="cover-thumb-empty">不设置封面</div>';
-  thumbs.appendChild(noneButton);
-
-  if (photos.length === 0) {
-    const emptyMsg = document.createElement("div");
-    emptyMsg.className = "cover-thumb-empty";
-    emptyMsg.textContent = "当前路线暂无图片，先上传图片后可选择封面。";
-    thumbs.appendChild(emptyMsg);
-    return;
-  }
-
-  photos.forEach((photo) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = `cover-thumb-item${photo === cover ? " is-selected" : ""}`;
-    button.dataset.coverValue = photo;
-
-    const image = document.createElement("img");
-    image.src = toAssetSrc(photo);
-    image.alt = extractFileName(photo);
-    image.addEventListener("error", () => {
-      if (image.dataset.fallbackApplied === "1") return;
-      if (!isRepoManagedUploadPhoto(photo)) return;
-      const fallback = buildGitHubRawAssetUrl(photo);
-      if (!fallback) return;
-      image.dataset.fallbackApplied = "1";
-      image.src = fallback;
-    });
-
-    const name = document.createElement("div");
-    name.className = "cover-thumb-name";
-    name.textContent = extractFileName(photo);
-    name.title = extractFileName(photo);
-
-    button.appendChild(image);
-    button.appendChild(name);
-    thumbs.appendChild(button);
-  });
 }
 
 function saveCurrentRouteContent(showNotice = true) {
@@ -1003,19 +956,6 @@ function bindEvents() {
     const route = getActiveRoute();
     if (!route) return;
     route.cover = getInputValue("r-cover-select", "").trim();
-    populateCoverPhotoOptions(route);
-  });
-  on("r-cover-thumbs", "click", (event) => {
-    const target = event.target;
-    if (!(target instanceof Element)) return;
-    const button = target.closest("button[data-cover-value]");
-    if (!(button instanceof HTMLButtonElement)) return;
-    const route = getActiveRoute();
-    if (!route) return;
-    const value = button.dataset.coverValue || "";
-    route.cover = value;
-    setInputValue("r-cover-select", value);
-    populateCoverPhotoOptions(route);
   });
   on("save-route-content-btn", "click", () => {
     saveCurrentRouteContent(true);
