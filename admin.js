@@ -261,8 +261,44 @@ function createRouteFromPanel() {
   activeRouteId = route.id;
   toggleNewRoutePanel(false);
   populateRoutePicker();
+  fillRouteContentForm(route);
   renderRoutePhotoList();
   showMessage("save-msg", `已新建路线：${name}，记得点击“发布到 GitHub”`);
+}
+
+function fillRouteContentForm(route) {
+  setInputValue("r-name", route && route.name ? route.name : "");
+  setInputValue("r-location", route && route.location ? route.location : "");
+  setInputValue("r-effort", route && route.effort ? route.effort : "");
+  setInputValue("r-highlight", route && route.highlight ? route.highlight : "");
+  setInputValue("r-cover", route && route.cover ? route.cover : "");
+}
+
+function saveCurrentRouteContent(showNotice = true) {
+  const route = getActiveRoute();
+  if (!route) {
+    showMessage("save-msg", "未找到当前路线，无法保存路线内容", true);
+    return false;
+  }
+
+  const nextName = getInputValue("r-name", "").trim();
+  if (!nextName) {
+    showMessage("save-msg", "路线名称不能为空", true);
+    return false;
+  }
+
+  route.name = nextName;
+  route.location = getInputValue("r-location", "").trim();
+  route.effort = getInputValue("r-effort", "").trim();
+  route.highlight = getInputValue("r-highlight", "").trim();
+  route.cover = getInputValue("r-cover", "").trim();
+
+  populateRoutePicker();
+  fillRouteContentForm(route);
+  if (showNotice) {
+    showMessage("save-msg", `已保存路线内容：${route.name}`);
+  }
+  return true;
 }
 
 function populateRoutePicker() {
@@ -788,6 +824,7 @@ async function handleRoutePhotoListClick(event) {
 }
 
 function saveAll() {
+  if (!saveCurrentRouteContent(false)) return;
   collectProviderSettings();
   sanitizeAllRoutes();
   try {
@@ -803,6 +840,7 @@ async function publishToGitHub() {
   if (publishBtn) publishBtn.disabled = true;
 
   try {
+    if (!saveCurrentRouteContent(false)) return;
     collectProviderSettings();
     sanitizeAllRoutes();
     storage.saveConfig(state);
@@ -854,6 +892,7 @@ async function refreshStateFromRuntime() {
 function hydrateAll() {
   applyProviderSettings();
   populateRoutePicker();
+  fillRouteContentForm(getActiveRoute());
   renderRoutePhotoList();
 }
 
@@ -870,7 +909,11 @@ function bindEvents() {
   });
   on("route-picker", "change", (event) => {
     activeRouteId = event.target.value;
+    fillRouteContentForm(getActiveRoute());
     renderRoutePhotoList();
+  });
+  on("save-route-content-btn", "click", () => {
+    saveCurrentRouteContent(true);
   });
   on("new-route-btn", "click", openCreateRoutePanel);
   on("confirm-new-route-btn", "click", createRouteFromPanel);

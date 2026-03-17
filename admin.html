@@ -24,8 +24,8 @@
       <section id="admin-panel" class="admin-panel hidden">
         <header class="panel-header">
           <div>
-            <h2>图片管理</h2>
-            <p>选择路线后上传或删除图片</p>
+            <h2>路线与图片管理</h2>
+            <p>可修改路线内容，并上传或删除图片</p>
           </div>
           <a href="./index.html" target="_blank" rel="noreferrer">打开前台</a>
         </header>
@@ -46,6 +46,36 @@
           </div>
           <div class="route-actions">
             <button id="new-route-btn" class="btn">新建路线</button>
+          </div>
+          <div class="route-edit-panel">
+            <div class="list-head">
+              <h3>当前路线内容</h3>
+            </div>
+            <div class="field-grid">
+              <label>
+                路线名称
+                <input id="r-name" type="text" />
+              </label>
+              <label>
+                路线地点
+                <input id="r-location" type="text" />
+              </label>
+              <label>
+                路线强度
+                <input id="r-effort" type="text" />
+              </label>
+              <label>
+                路线亮点
+                <input id="r-highlight" type="text" />
+              </label>
+              <label>
+                封面图路径
+                <input id="r-cover" type="text" placeholder="例如：./个人摄影集/梅里北坡/DSC00483.jpg" />
+              </label>
+            </div>
+            <div class="upload-row">
+              <button id="save-route-content-btn" class="btn btn-primary">保存当前路线内容</button>
+            </div>
           </div>
           <div id="new-route-panel" class="route-create-panel hidden">
             <div class="field-grid">
@@ -122,7 +152,7 @@
       </section>
     </main>
 
-    <script src="./site-data.js?v=20260317-1910"></script>
-    <script src="./admin.js?v=20260317-1910"></script>
+    <script src="./site-data.js?v=20260317-1945"></script>
+    <script src="./admin.js?v=20260317-1945"></script>
   </body>
 </html>
