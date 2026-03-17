@@ -271,7 +271,43 @@ function fillRouteContentForm(route) {
   setInputValue("r-location", route && route.location ? route.location : "");
   setInputValue("r-effort", route && route.effort ? route.effort : "");
   setInputValue("r-highlight", route && route.highlight ? route.highlight : "");
-  setInputValue("r-cover", route && route.cover ? route.cover : "");
+  populateCoverPhotoOptions(route);
+}
+
+function populateCoverPhotoOptions(route) {
+  const select = byId("r-cover-select");
+  if (!select) return;
+
+  const photos = sanitizePhotoList(route && Array.isArray(route.photos) ? route.photos : []);
+  const cover = route && typeof route.cover === "string" ? route.cover : "";
+
+  select.innerHTML = "";
+
+  const emptyOption = document.createElement("option");
+  emptyOption.value = "";
+  emptyOption.textContent = "不设置封面";
+  select.appendChild(emptyOption);
+
+  if (cover && !photos.includes(cover)) {
+    const missingOption = document.createElement("option");
+    missingOption.value = cover;
+    missingOption.textContent = `当前封面(已不在本路线图片中) · ${extractFileName(cover)}`;
+    select.appendChild(missingOption);
+  }
+
+  photos.forEach((photo, index) => {
+    const option = document.createElement("option");
+    option.value = photo;
+    option.textContent = `${String(index + 1).padStart(2, "0")} · ${extractFileName(photo)}`;
+    select.appendChild(option);
+  });
+
+  select.value = cover;
+  const noChoice = photos.length === 0 && !cover;
+  select.disabled = noChoice;
+  if (noChoice) {
+    emptyOption.textContent = "当前路线暂无图片（先上传图片）";
+  }
 }
 
 function saveCurrentRouteContent(showNotice = true) {
@@ -291,7 +327,7 @@ function saveCurrentRouteContent(showNotice = true) {
   route.location = getInputValue("r-location", "").trim();
   route.effort = getInputValue("r-effort", "").trim();
   route.highlight = getInputValue("r-highlight", "").trim();
-  route.cover = getInputValue("r-cover", "").trim();
+  route.cover = getInputValue("r-cover-select", "").trim();
 
   populateRoutePicker();
   fillRouteContentForm(route);
@@ -317,6 +353,7 @@ function renderRoutePhotoList() {
   const container = byId("r-photo-list");
   const countNode = byId("photo-count");
   if (!container) return;
+  populateCoverPhotoOptions(route);
 
   if (!route || !Array.isArray(route.photos) || route.photos.length === 0) {
     container.innerHTML = '<p class="message">当前路线暂无图片</p>';
@@ -814,6 +851,9 @@ async function handleRoutePhotoListClick(event) {
 
   route.photos.splice(index, 1);
   route.photos = sanitizePhotoList(route.photos);
+  if (route.cover === photo) {
+    route.cover = route.photos[0] || "";
+  }
   renderRoutePhotoList();
 
   if (deletedRemote) {
@@ -911,6 +951,11 @@ function bindEvents() {
     activeRouteId = event.target.value;
     fillRouteContentForm(getActiveRoute());
     renderRoutePhotoList();
+  });
+  on("r-cover-select", "change", () => {
+    const route = getActiveRoute();
+    if (!route) return;
+    route.cover = getInputValue("r-cover-select", "").trim();
   });
   on("save-route-content-btn", "click", () => {
     saveCurrentRouteContent(true);
