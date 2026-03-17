@@ -121,6 +121,18 @@ select {
   flex-wrap: wrap;
 }
 
+.route-actions {
+  margin: 0.1rem 0 0.7rem;
+}
+
+.route-create-panel {
+  margin-bottom: 0.7rem;
+  padding: 0.75rem;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background: rgba(250, 252, 255, 0.92);
+}
+
 .btn {
   border: 1px solid var(--line);
   background: #fff;

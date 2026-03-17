@@ -205,6 +205,66 @@ function getActiveRoute() {
   return state.routes.find((route) => route.id === activeRouteId) || null;
 }
 
+function toRouteId(name) {
+  const base =
+    String(name || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9\\u4e00-\\u9fa5]+/g, "-")
+      .replace(/(^-|-$)/g, "") || `route-${Date.now()}`;
+  let id = base;
+  let i = 1;
+  while (state.routes.some((route) => route.id === id)) {
+    id = `${base}-${i}`;
+    i += 1;
+  }
+  return id;
+}
+
+function toggleNewRoutePanel(show) {
+  const panel = byId("new-route-panel");
+  if (!panel) return;
+  panel.classList.toggle("hidden", !show);
+}
+
+function resetNewRouteForm() {
+  setInputValue("nr-name", "");
+  setInputValue("nr-location", "");
+  setInputValue("nr-effort", "");
+  setInputValue("nr-highlight", "");
+}
+
+function openCreateRoutePanel() {
+  resetNewRouteForm();
+  toggleNewRoutePanel(true);
+  const nameInput = byId("nr-name");
+  if (nameInput) nameInput.focus();
+}
+
+function createRouteFromPanel() {
+  const name = getInputValue("nr-name", "").trim();
+  if (!name) {
+    showMessage("save-msg", "请先填写路线名称", true);
+    return;
+  }
+
+  const route = {
+    id: toRouteId(name),
+    name,
+    location: getInputValue("nr-location", "").trim(),
+    effort: getInputValue("nr-effort", "").trim(),
+    highlight: getInputValue("nr-highlight", "").trim(),
+    cover: "",
+    photos: [],
+  };
+
+  state.routes.push(route);
+  activeRouteId = route.id;
+  toggleNewRoutePanel(false);
+  populateRoutePicker();
+  renderRoutePhotoList();
+  showMessage("save-msg", `已新建路线：${name}，记得点击“发布到 GitHub”`);
+}
+
 function populateRoutePicker() {
   const picker = byId("route-picker");
   if (!picker) return;
@@ -805,6 +865,19 @@ function bindEvents() {
   on("route-picker", "change", (event) => {
     activeRouteId = event.target.value;
     renderRoutePhotoList();
+  });
+  on("new-route-btn", "click", openCreateRoutePanel);
+  on("confirm-new-route-btn", "click", createRouteFromPanel);
+  on("cancel-new-route-btn", "click", () => toggleNewRoutePanel(false));
+  on("new-route-panel", "keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      createRouteFromPanel();
+      return;
+    }
+    if (event.key === "Escape") {
+      toggleNewRoutePanel(false);
+    }
   });
   on("r-upload-btn", "click", uploadPhotosToCurrentRoute);
   on("r-photo-list", "click", handleRoutePhotoListClick);

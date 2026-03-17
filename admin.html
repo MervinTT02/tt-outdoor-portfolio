@@ -44,6 +44,33 @@
               </select>
             </label>
           </div>
+          <div class="route-actions">
+            <button id="new-route-btn" class="btn">新建路线</button>
+          </div>
+          <div id="new-route-panel" class="route-create-panel hidden">
+            <div class="field-grid">
+              <label>
+                路线名称
+                <input id="nr-name" type="text" placeholder="例如：云南德钦·雨崩线" />
+              </label>
+              <label>
+                路线地点
+                <input id="nr-location" type="text" placeholder="例如：云南德钦" />
+              </label>
+              <label>
+                路线强度
+                <input id="nr-effort" type="text" placeholder="例如：2天轻装徒步" />
+              </label>
+              <label>
+                路线亮点
+                <input id="nr-highlight" type="text" placeholder="例如：雪山、冰湖、草甸" />
+              </label>
+            </div>
+            <div class="upload-row">
+              <button id="cancel-new-route-btn" class="btn">取消</button>
+              <button id="confirm-new-route-btn" class="btn btn-primary">确认创建</button>
+            </div>
+          </div>
 
           <div id="github-fields" class="field-grid">
             <label>
@@ -95,7 +122,7 @@
       </section>
     </main>
 
-    <script src="./site-data.js?v=20260306-2218"></script>
-    <script src="./admin.js?v=20260306-2218"></script>
+    <script src="./site-data.js?v=20260317-1835"></script>
+    <script src="./admin.js?v=20260317-1835"></script>
   </body>
 </html>
