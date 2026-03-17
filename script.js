@@ -835,6 +835,17 @@ function bindLightboxEvents() {
 
 function initReveal() {
   const targets = document.querySelectorAll(".reveal");
+  if (targets.length === 0) return;
+
+  const revealAll = () => {
+    targets.forEach((target) => target.classList.add("visible"));
+  };
+
+  if (typeof window.IntersectionObserver !== "function") {
+    revealAll();
+    return;
+  }
+
   const observer = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
@@ -844,9 +855,23 @@ function initReveal() {
         }
       });
     },
-    { threshold: 0.15 },
+    {
+      // Use a very low threshold so long sections (like gallery) still reveal on refresh.
+      threshold: 0.01,
+      rootMargin: "0px 0px -8% 0px",
+    },
   );
   targets.forEach((target) => observer.observe(target));
+
+  // Failsafe: avoid sections staying hidden if observer callbacks are delayed/skipped.
+  window.setTimeout(() => {
+    targets.forEach((target) => {
+      if (!target.classList.contains("visible")) {
+        target.classList.add("visible");
+        observer.unobserve(target);
+      }
+    });
+  }, 1200);
 }
 
 async function loadRuntimeConfig() {
