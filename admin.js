@@ -386,13 +386,19 @@ function persistUploadSettings() {
 }
 
 function collectProviderSettings() {
+  const nextCfToken = getInputValue("cf-images-token", "").trim();
+  const nextGhToken = getInputValue("gh-token", "").trim();
   uploadSettings.provider = (getInputValue("upload-provider", "github") || "github").trim();
   uploadSettings.cloudflareAccountId = getInputValue("cf-account-id", "").trim();
-  uploadSettings.cloudflareImagesToken = getInputValue("cf-images-token", "").trim();
+  if (nextCfToken) {
+    uploadSettings.cloudflareImagesToken = nextCfToken;
+  }
   publishSettings.owner = getInputValue("gh-owner", "").trim();
   publishSettings.repo = getInputValue("gh-repo", "").trim();
   publishSettings.branch = getInputValue("gh-branch", "main").trim() || "main";
-  publishSettings.token = getInputValue("gh-token", "").trim();
+  if (nextGhToken) {
+    publishSettings.token = nextGhToken;
+  }
   persistUploadSettings();
   persistPublishSettings();
 }
