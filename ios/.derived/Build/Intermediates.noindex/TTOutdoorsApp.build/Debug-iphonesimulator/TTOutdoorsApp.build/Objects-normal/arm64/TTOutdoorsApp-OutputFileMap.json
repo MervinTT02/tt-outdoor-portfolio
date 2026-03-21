@@ -1,0 +1,79 @@
+{
+  "" : {
+    "diagnostics" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/TTOutdoorsApp-primary.dia",
+    "emit-module-dependencies" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/TTOutdoorsApp-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/TTOutdoorsApp-primary-emit-module.dia",
+    "pch" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/TTOutdoorsApp-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/TTOutdoorsApp-primary.swiftdeps"
+  },
+  "/Users/bujiaban/Documents/GitHub/tt-web/ios/TTOutdoorsApp/APIClient.swift" : {
+    "const-values" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/APIClient.swiftconstvalues",
+    "dependencies" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/APIClient.d",
+    "diagnostics" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/APIClient.dia",
+    "index-unit-output-path" : "/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/APIClient.o",
+    "llvm-bc" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/APIClient.bc",
+    "object" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/APIClient.o",
+    "swift-dependencies" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/APIClient.swiftdeps",
+    "swiftmodule" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/APIClient~partial.swiftmodule"
+  },
+  "/Users/bujiaban/Documents/GitHub/tt-web/ios/TTOutdoorsApp/AppConfig.swift" : {
+    "const-values" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/AppConfig.swiftconstvalues",
+    "dependencies" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/AppConfig.d",
+    "diagnostics" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/AppConfig.dia",
+    "index-unit-output-path" : "/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/AppConfig.o",
+    "llvm-bc" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/AppConfig.bc",
+    "object" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/AppConfig.o",
+    "swift-dependencies" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/AppConfig.swiftdeps",
+    "swiftmodule" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/AppConfig~partial.swiftmodule"
+  },
+  "/Users/bujiaban/Documents/GitHub/tt-web/ios/TTOutdoorsApp/HomeViewModel.swift" : {
+    "const-values" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/HomeViewModel.swiftconstvalues",
+    "dependencies" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/HomeViewModel.d",
+    "diagnostics" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/HomeViewModel.dia",
+    "index-unit-output-path" : "/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/HomeViewModel.o",
+    "llvm-bc" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/HomeViewModel.bc",
+    "object" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/HomeViewModel.o",
+    "swift-dependencies" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/HomeViewModel.swiftdeps",
+    "swiftmodule" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/HomeViewModel~partial.swiftmodule"
+  },
+  "/Users/bujiaban/Documents/GitHub/tt-web/ios/TTOutdoorsApp/ImagePipeline.swift" : {
+    "const-values" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/ImagePipeline.swiftconstvalues",
+    "dependencies" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/ImagePipeline.d",
+    "diagnostics" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/ImagePipeline.dia",
+    "index-unit-output-path" : "/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/ImagePipeline.o",
+    "llvm-bc" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/ImagePipeline.bc",
+    "object" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/ImagePipeline.o",
+    "swift-dependencies" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/ImagePipeline.swiftdeps",
+    "swiftmodule" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/ImagePipeline~partial.swiftmodule"
+  },
+  "/Users/bujiaban/Documents/GitHub/tt-web/ios/TTOutdoorsApp/Models.swift" : {
+    "const-values" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/Models.swiftconstvalues",
+    "dependencies" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/Models.d",
+    "diagnostics" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/Models.dia",
+    "index-unit-output-path" : "/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/Models.o",
+    "llvm-bc" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/Models.bc",
+    "object" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/Models.o",
+    "swift-dependencies" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/Models.swiftdeps",
+    "swiftmodule" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/Models~partial.swiftmodule"
+  },
+  "/Users/bujiaban/Documents/GitHub/tt-web/ios/TTOutdoorsApp/TTOutdoorsApp.swift" : {
+    "const-values" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/TTOutdoorsApp.swiftconstvalues",
+    "dependencies" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/TTOutdoorsApp.d",
+    "diagnostics" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/TTOutdoorsApp.dia",
+    "index-unit-output-path" : "/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/TTOutdoorsApp.o",
+    "llvm-bc" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/TTOutdoorsApp.bc",
+    "object" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/TTOutdoorsApp.o",
+    "swift-dependencies" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/TTOutdoorsApp.swiftdeps",
+    "swiftmodule" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/TTOutdoorsApp~partial.swiftmodule"
+  },
+  "/Users/bujiaban/Documents/GitHub/tt-web/ios/TTOutdoorsApp/Views.swift" : {
+    "const-values" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/Views.swiftconstvalues",
+    "dependencies" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/Views.d",
+    "diagnostics" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/Views.dia",
+    "index-unit-output-path" : "/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/Views.o",
+    "llvm-bc" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/Views.bc",
+    "object" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/Views.o",
+    "swift-dependencies" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/Views.swiftdeps",
+    "swiftmodule" : "/Users/bujiaban/Documents/GitHub/tt-web/ios/.derived/Build/Intermediates.noindex/TTOutdoorsApp.build/Debug-iphonesimulator/TTOutdoorsApp.build/Objects-normal/arm64/Views~partial.swiftmodule"
+  }
+}
