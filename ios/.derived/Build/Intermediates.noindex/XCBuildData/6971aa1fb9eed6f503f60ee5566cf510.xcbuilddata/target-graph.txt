@@ -1,2 +1,0 @@
-Target dependency graph (1 target)
-Target 'TTOutdoorsApp' in project 'TTOutdoorsApp' (no dependencies)
