@@ -106,7 +106,6 @@ struct RouteDetailView: View {
     GridItem(.flexible(), spacing: 12),
     GridItem(.flexible(), spacing: 12),
   ]
-  private let photoCardHeight: CGFloat = 148
 
   var body: some View {
     ScrollView {
@@ -125,8 +124,8 @@ struct RouteDetailView: View {
         LazyVGrid(columns: columns, spacing: 12) {
           ForEach(Array(route.photos.enumerated()), id: \.offset) { _, path in
             RemoteImage(rawPath: path, maxPixel: 760, preferThumbnail: AppConfig.enableServerThumbnails)
-              .frame(maxWidth: .infinity, minHeight: photoCardHeight, maxHeight: photoCardHeight)
-              .clipped()
+              .aspectRatio(4.0 / 3.0, contentMode: .fill)
+              .frame(maxWidth: .infinity)
               .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
           }
         }
