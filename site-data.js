@@ -171,10 +171,6 @@
         ],
       },
     ],
-    admin: {
-      username: "TT",
-      passcode: "Zxcvbnm123.",
-    },
   };
 
   function deepClone(obj) {
