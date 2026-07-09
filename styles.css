@@ -69,6 +69,93 @@ main,
   z-index: 1;
 }
 
+.auth-locked {
+  overflow: hidden;
+}
+
+.auth-locked .topbar,
+.auth-locked main,
+.auth-locked .footer,
+.auth-locked .lightbox {
+  display: none;
+}
+
+.login-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 1.2rem;
+  background:
+    linear-gradient(rgba(246, 249, 252, 0.78), rgba(235, 240, 247, 0.82)),
+    url("./个人摄影集/梅里北坡/DSC00483.jpg") center / cover;
+}
+
+.auth-ready .login-screen {
+  display: none;
+}
+
+.site-login-card {
+  width: min(420px, 100%);
+  padding: clamp(1.25rem, 4vw, 2rem);
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(18px);
+}
+
+.site-login-card h1 {
+  margin: 0.55rem 0 1.25rem;
+  font-size: clamp(1.8rem, 8vw, 2.55rem);
+  white-space: normal;
+}
+
+.login-field {
+  display: grid;
+  gap: 0.42rem;
+  margin-bottom: 0.9rem;
+  color: #394454;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.login-field input {
+  width: 100%;
+  min-height: 2.8rem;
+  border: 1px solid rgba(18, 22, 26, 0.13);
+  border-radius: 12px;
+  padding: 0.72rem 0.82rem;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.88);
+  font: inherit;
+  outline: none;
+}
+
+.login-field input:focus {
+  border-color: rgba(43, 92, 255, 0.5);
+  box-shadow: 0 0 0 4px rgba(43, 92, 255, 0.12);
+}
+
+.login-submit {
+  width: 100%;
+  margin-top: 0.25rem;
+  border: 0;
+  cursor: pointer;
+}
+
+.login-message {
+  min-height: 1.35rem;
+  margin: 0.75rem 0 0;
+  color: #47603f;
+  font-size: 0.84rem;
+}
+
+.login-message.is-error {
+  color: #b42318;
+}
+
 .topbar {
   width: min(1180px, calc(100% - 2.2rem));
   margin: 1.1rem auto 0;
@@ -121,6 +208,23 @@ main,
 
 .nav a:hover {
   color: var(--text);
+}
+
+.logout-btn {
+  border: 1px solid rgba(18, 22, 26, 0.12);
+  border-radius: 999px;
+  padding: 0.42rem 0.78rem;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.66);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.logout-btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.9);
 }
 
 main {
@@ -536,6 +640,7 @@ h2 {
   }
 
   .nav {
+    order: 3;
     width: 100%;
     justify-content: space-between;
     gap: 0.45rem;
@@ -543,6 +648,10 @@ h2 {
 
   .nav a {
     font-size: 0.79rem;
+  }
+
+  .logout-btn {
+    margin-left: auto;
   }
 
   h1 {

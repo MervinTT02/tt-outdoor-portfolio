@@ -1,8 +1,12 @@
 const storage = window.TTStorage;
+const SITE_AUTH_KEY = "tt_site_logged_in_v1";
+const DEFAULT_SITE_USERNAME = "TT";
+const DEFAULT_SITE_PASSCODE = "Zxcvbnm123.";
 let config = window.TT_DEFAULT_CONFIG;
 let site = {};
 let heroConfig = {};
 let galleryConfig = {};
+let adminConfig = {};
 let routes = [];
 let routeNameById = {};
 let allPhotos = [];
@@ -24,12 +28,14 @@ let heroSlideIndex = 0;
 let heroSlideTimer = null;
 let heroPlaybackOrder = [];
 let packedLayoutRaf = 0;
+let appInitialized = false;
 
 function applyConfig(nextConfig) {
   config = nextConfig && typeof nextConfig === "object" ? nextConfig : window.TT_DEFAULT_CONFIG;
   site = config.site || {};
   heroConfig = config.hero || {};
   galleryConfig = config.gallery || {};
+  adminConfig = config.admin || {};
   routes = Array.isArray(config.routes) ? config.routes : [];
 
   routeNameById = Object.fromEntries(routes.map((route) => [route.id, route.name]));
@@ -45,6 +51,86 @@ function applyConfig(nextConfig) {
   activeFilter = "all";
   visiblePhotos = allPhotos;
   cloudflareImagePolicy = getCloudflareImagePolicy();
+}
+
+function getSiteAuthConfig() {
+  const username = String(adminConfig.username || DEFAULT_SITE_USERNAME).trim() || DEFAULT_SITE_USERNAME;
+  const passcode = String(adminConfig.passcode || DEFAULT_SITE_PASSCODE).trim() || DEFAULT_SITE_PASSCODE;
+  return { username, passcode };
+}
+
+function isSiteLoggedIn() {
+  return localStorage.getItem(SITE_AUTH_KEY) === "1";
+}
+
+function setSiteLoggedIn(value) {
+  localStorage.setItem(SITE_AUTH_KEY, value ? "1" : "0");
+}
+
+function setLoginMessage(message, isError = false) {
+  const target = document.getElementById("site-login-message");
+  if (!target) return;
+  target.textContent = message || "";
+  target.classList.toggle("is-error", Boolean(isError));
+}
+
+function showProtectedSite() {
+  document.body.classList.remove("auth-locked");
+  document.body.classList.add("auth-ready");
+  setLoginMessage("");
+}
+
+function showLoginScreen() {
+  document.body.classList.add("auth-locked");
+  document.body.classList.remove("auth-ready");
+  const usernameInput = document.getElementById("site-login-username");
+  if (usernameInput) usernameInput.focus();
+}
+
+async function startProtectedSite() {
+  if (appInitialized) return;
+  appInitialized = true;
+  await ensureCloudflareResponsiveAvailable();
+
+  applySiteCopy();
+  applyGallerySettings();
+  setStats();
+  startHeroSlideshow();
+  renderRoutes();
+  renderFilters();
+  renderGallery();
+  bindLightboxEvents();
+  initReveal();
+}
+
+function bindSiteAuthEvents() {
+  const form = document.getElementById("site-login-form");
+  if (form) {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const username = String(document.getElementById("site-login-username")?.value || "").trim();
+      const password = String(document.getElementById("site-login-password")?.value || "").trim();
+      const auth = getSiteAuthConfig();
+
+      if (username !== auth.username || password !== auth.passcode) {
+        setSiteLoggedIn(false);
+        setLoginMessage("账号或密码错误", true);
+        return;
+      }
+
+      setSiteLoggedIn(true);
+      showProtectedSite();
+      await startProtectedSite();
+    });
+  }
+
+  const logoutBtn = document.getElementById("site-logout-btn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+      setSiteLoggedIn(false);
+      window.location.reload();
+    });
+  }
 }
 
 function assetPath(path) {
@@ -885,17 +971,13 @@ async function loadRuntimeConfig() {
 async function init() {
   const runtimeConfig = await loadRuntimeConfig();
   applyConfig(runtimeConfig);
-  await ensureCloudflareResponsiveAvailable();
-
-  applySiteCopy();
-  applyGallerySettings();
-  setStats();
-  startHeroSlideshow();
-  renderRoutes();
-  renderFilters();
-  renderGallery();
-  bindLightboxEvents();
-  initReveal();
+  bindSiteAuthEvents();
+  if (!isSiteLoggedIn()) {
+    showLoginScreen();
+    return;
+  }
+  showProtectedSite();
+  await startProtectedSite();
 }
 
 document.addEventListener("DOMContentLoaded", () => {
